@@ -1,0 +1,23 @@
+version: '2.0'
+services:
+  slave0:
+    image: '8-jre-alpine'
+    volumes:
+      - '.:/ws'
+    command: cd /ws & java -jar /build/matrix.jar slave
+  slave1:
+    image: '8-jre-alpine'
+    volumes:
+      - '.:/ws'
+    command: cd /ws & java -jar /build/matrix.jar slave
+  master:
+    image: '8-jre-alpine'
+    depends_on:
+      -slave0
+      -slave1
+    links:
+      -slave0
+      -slave1
+    volumes:
+      - '.:/ws'
+    command: cd /ws & java -jar /build/matrix.jar --slaves=2 master ./data/10
