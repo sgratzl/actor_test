@@ -14,11 +14,7 @@ object Main {
     val a = loadFile(s"./data/${file}a.csv")
     val b = loadFile(s"./data/${file}b.csv")
     val c = loadFile(s"./data/${file}c.csv")
-    println(a)
-    println(b)
-    println(c)
-    println(a * b)
-    println((a * b) == c)
+
   }
 
   def parseArgs(args: Array[String]): (String, Int, String) = {

@@ -12,11 +12,11 @@ case class Matrix(values: IndexedSeq[IndexedSeq[Int]]) {
       val arow = a(i)
       for(j <- 0 until ncol) yield {
         val bcol = b.map(_(j))
-        arow.zip(bcol) //.map( (a:Int, b:Int) => a * b).sum
+        arow.zip(bcol).map((t) => t._1 * t._2).sum
       }
     }
     println(values)
-    new Matrix(null)
+    Matrix(values)
   }
 }
 
