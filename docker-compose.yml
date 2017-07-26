@@ -4,12 +4,14 @@ services:
     image: openjdk:jre-alpine
     volumes:
       - '.:/ws'
-    command: cd /ws & java -jar /build/matrix.jar slave
+    working_dir: /ws
+    command: 'java -cp .:lib/scala-library-2.12.2.jar:out/production/distributed_matrix --mode=slave'
   slave1:
     image: openjdk:jre-alpine
     volumes:
       - '.:/ws'
-    command: cd /ws & java -jar /build/matrix.jar slave
+    working_dir: /ws
+    command: 'java -cp .:lib/scala-library-2.12.2.jar:out/production/distributed_matrix --mode=slave'
   master:
     image: openjdk:jre-alpine
     depends_on:
@@ -20,4 +22,5 @@ services:
       - slave1
     volumes:
       - '.:/ws'
-    command: cd /ws & java -jar /build/matrix.jar --slaves=2 master ./data/10
+    working_dir: /ws
+    command: 'java -cp .:lib/scala-library-2.12.2.jar:out/production/distributed_matrix --mode=master --slaves2 ./data/10'
