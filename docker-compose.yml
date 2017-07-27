@@ -23,4 +23,4 @@ services:
     volumes:
       - '.:/ws'
     working_dir: /ws
-    command: "java -cp .:lib/scala-library-2.11.11.jar:lib/scala-actors-2.11.2.jar:out/production/distributed_matrix Main --mode master --slaves 2 --file 100"
+    command: "java -cp .:lib/scala-library-2.11.11.jar:lib/scala-actors-2.11.2.jar:out/production/distributed_matrix Main --mode master --slaves 2 --file 1000"
