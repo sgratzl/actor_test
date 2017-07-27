@@ -38,9 +38,9 @@ object Main {
               sender ! Kill
               if (missing == 0) {
                 println("Done")
-                exit(0)
+                exit()
               }
-          }
+          }: Unit
         }
       }
     }
@@ -88,7 +88,7 @@ object Main {
 
   def writeFile(file: String, matrix: Matrix): Unit = {
     import java.io.PrintWriter
-    val w = new PrintWriter("filename")
+    val w = new PrintWriter(file)
     val v = matrix.values
     for (row <- v) {
       w.println(row.map(_.toString).mkString("\t"))

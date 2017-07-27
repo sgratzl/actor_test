@@ -18,7 +18,7 @@ class Slave(val index: Int) extends Actor {
         sender ! s"It's me after $time"
       case Kill =>
         println("Kill myself")
-        exit(0)
+        exit()
     }
   }
 }
