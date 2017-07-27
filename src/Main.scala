@@ -13,17 +13,20 @@ object Main {
     val b = loadFile(s"./data/${file}b.csv")
     val c = loadFile(s"./data/${file}c.csv")
 
+    val n = a.nrow
+
     if (slaves == 0) {
       val ab = a * b
       val ab2 = Cannon(a, b)
-      println(ab == c)
-      println(ab2 == c)
+      println(s"$n: A * B = C ${if (ab == c) "CORRECT" else "INCORRECT"}")
+      println(s"$n: CANNON A * B = C ${if (ab2 == c) "CORRECT" else "INCORRECT"}")
       //writeFile(s"./data/${file}ab.csv", ab)
     } else {
       import matrix.Master
 
       def onResult(ab: Matrix) {
-        println(ab == c)
+        println(s"$n: DISTRIBUTED CANNON A * B = C ${if (ab == c) "CORRECT" else "INCORRECT"}")
+        //writeFile(s"./data/${file}ab.csv", ab)
       }
 
       new Master(slaves, a, b, onResult).start()
