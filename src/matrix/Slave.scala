@@ -6,18 +6,31 @@ import scala.actors.remote._
 import scala.actors.remote.RemoteActor._
 import scala.collection.mutable
 
-case class Init(n: Int, i: Int, j: Int, a: Int, b: Int)
+case class Init(n: Int)
 
-case class SetValue(what: Symbol, v: Int)
+case class At(i: Int, j: Int)
 
-case class Collect(i: Int, j: Int, c: Int)
+case class Assign(at: At, a: Int, b: Int)
 
-case class SlaveLookup(val n: Int, val slaves: Int, val index: Int, val self: Actor) {
-  private val remotes: IndexedSeq[OutputChannel[Any]] = (0 to slaves).map((i) => if (i == index) self else select(Node(s"slave$i", 9000), Symbol(s"slave$i")))
+case class SetValue(at: At, what: Symbol, v: Int)
 
-  def apply(i: Int, j: Int): OutputChannel[Any] = {
-    //TODO compute the magic which slave it is
-    remotes(0)
+case class Collect(at: At, c: Int)
+
+class GridNode(var a: Int = 0, var b: Int = 0, var c: Int = 0) {
+
+}
+
+case class SlaveLookup(n: Int, slaves: Int, index: Int, self: Actor) {
+  val remotes: IndexedSeq[OutputChannel[Any]] = (0 to slaves).map((i) => if (i == index) self else select(Node(s"slave$i", 9000), Symbol(s"slave$i")))
+
+  def apply(at: At): OutputChannel[Any] = {
+    val abs = (at.i * n) + at.j
+    remotes(abs % slaves)
+  }
+
+  def nodesOf(slave: Int): Map[At, GridNode] = {
+    val pairs = for (i <- 0 until n; j <- 0 until n if ((i * n) + j) % slaves == slave) yield At(i, j)
+    pairs.map(_ -> new GridNode()).toMap
   }
 }
 
@@ -26,15 +39,16 @@ class Master(val slaves: Int, val a: Matrix, val b: Matrix, val result: (Matrix)
     val n = a.nrow
     val slaveAt = SlaveLookup(n, slaves, -1, null)
 
+    slaveAt.remotes.foreach(_ ! Init(n))
     for (i <- 0 until n; j <- 0 until n) {
-      slaveAt(i, j) ! Init(n, i, j, a.values(i)(j), b.values(i)(j))
+      slaveAt(i, j) ! Assign(At(i, j), a.values(i)(j), b.values(i)(j))
     }
     var missing = n * n
     val c = (0 until b.nrow).map((_) => mutable.IndexedSeq.fill(a.ncol)(0)).toIndexedSeq
 
     loopWhile(missing > 0) {
       react {
-        case Collect(i, j, v) =>
+        case Collect(At(i, j), v) =>
           c(i)(j) = v
           missing -= 1
       }
@@ -51,52 +65,68 @@ class Slave(val index: Int, val slaves: Int) extends Actor {
     alive(9000)
     register(Symbol(s"slave$index"), self)
 
-    var n: Int = 0
-    var i: Int = 0
-    var j: Int = 0
-    var a: Int = 0
-    var b: Int = 0
-    var c: Int = 0
-    var master: OutputChannel[Any] = null
-    var slaveAt: SlaveLookup = null
     react {
-      case Init(_n, _i, _j, _a, _b) =>
-        n = _n
-        i = _i
-        j = _j
-        a = _a
-        b = _b
-        c = 0
-        master = sender
-        slaveAt = SlaveLookup(n, slaves, index, this)
-
-        slaveAt(i, (j - i) % n) ! SetValue('a, a)
-        react {
-          case SetValue('a, v) =>
-            a = v
-            slaveAt((i - j) % n, j) ! SetValue('b, b)
+      case Init(_n) =>
+        val n = _n
+        val master = sender
+        val slaveAt = SlaveLookup(n, slaves, index, this)
+        val nodes = slaveAt.nodesOf(index)
+        println("handle: ", nodes.keys)
+        var dec = nodes.size
+        loopWhile(dec > 0) {
+          react {
+            case Assign(at, a, b) =>
+              val node = nodes(at)
+              node.a = a
+              node.b = b
+              dec -= 1
+          }
+        } andThen {
+          nodes.foreach((kv) => {
+            val (at, node) = kv
+            val targetA = At(at.i, (at.j - at.i) % n)
+            slaveAt(targetA) ! SetValue(targetA, 'a, node.a)
+            val targetB = At((at.i - at.j) % n, at.j)
+            slaveAt(targetB) ! SetValue(targetB, 'b, node.b)
+          })
+          dec = nodes.size * 2
+          loopWhile(dec > 0) {
             react {
-              case SetValue('b, v) =>
-                b = v
-                var i = 0
-                loopWhile(i < n) {
-                  c += a * b
-                  slaveAt(i, (j - 1) % n) ! SetValue('a, a)
-                  react {
-                    case SetValue('a, v) =>
-                      a = v
-                      slaveAt((i - 1) % n, j) ! SetValue('b, b)
-                      react {
-                        case SetValue('b, v) =>
-                          b = v
-                      }
-                  }
-                } andThen {
-                  master ! Collect(i, j, c)
-                  println("Kill myself")
-                  exit()
-                }
+              case SetValue(at, s, v) =>
+                val node = nodes(at)
+                if (s == 'a) node.a = v else node.b = v
+                dec -= 1
             }
+          } andThen {
+            var incN = 0
+            loopWhile(incN < n) {
+              nodes.values.foreach((v) => v.c += v.a * v.b)
+              nodes.foreach((kv) => {
+                val (at, node) = kv
+                val targetA = At(at.i, (at.j - 1) % n)
+                slaveAt(targetA) ! SetValue(targetA, 'a, node.a)
+                val targetB = At((at.i - 1) % n, at.j)
+                slaveAt(targetB) ! SetValue(targetB, 'b, node.b)
+              })
+              dec = nodes.size * 2
+              loopWhile(dec > 0) {
+                react {
+                  case SetValue(at, s, v) =>
+                    val node = nodes(at)
+                    if (s == 'a) node.a = v else node.b = v
+                    dec -= 1
+                }
+              } andThen {
+                incN += 1
+                println("iteration done")
+                continue()
+              }
+            } andThen {
+              nodes.foreach((kv) => master ! Collect(kv._1, kv._2.c))
+              println("Kill myself")
+              exit()
+            }
+          }
         }
     }
   }

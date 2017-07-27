@@ -2,9 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="8bdb2339-5c66-4f07-b10e-2d22f8a26fc2" name="Default" comment="">
-      <change type="DELETED" beforePath="$PROJECT_DIR$/src/matrix/Master.scala" afterPath="" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/Main.scala" afterPath="$PROJECT_DIR$/src/Main.scala" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/matrix/Slave.scala" afterPath="$PROJECT_DIR$/src/matrix/Slave.scala" />
     </list>
     <ignored path="$PROJECT_DIR$/out/" />
@@ -37,21 +35,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="CanReply.scala" pinned="false" current-in-tab="false">
-        <entry file="jar://$MAVEN_REPOSITORY$/org/scala-lang/virtualized/scala-actors/2.11.2/scala-actors-2.11.2-sources.jar!/scala/actors/CanReply.scala">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="408">
-              <caret line="30" column="6" lean-forward="false" selection-start-line="30" selection-start-column="6" selection-end-line="30" selection-end-column="6" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="Slave.scala" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/matrix/Slave.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="300">
-              <caret line="27" column="0" lean-forward="true" selection-start-line="27" selection-start-column="0" selection-end-line="27" selection-end-column="0" />
+            <state relative-caret-position="2040">
+              <caret line="120" column="41" lean-forward="true" selection-start-line="120" selection-start-column="41" selection-end-line="120" selection-end-column="41" />
               <folding>
                 <element signature="e#16#37#0" expanded="true" />
               </folding>
@@ -381,7 +369,8 @@
     <MESSAGE value="simplify" />
     <MESSAGE value="start implementing Cannon algorithm" />
     <MESSAGE value="fix cannon algorithm" />
-    <option name="LAST_COMMIT_MESSAGE" value="fix cannon algorithm" />
+    <MESSAGE value="logic for distributed Cannon" />
+    <option name="LAST_COMMIT_MESSAGE" value="logic for distributed Cannon" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -568,10 +557,34 @@
         </state>
       </provider>
     </entry>
+    <entry file="jar://$USER_HOME$/.ivy2/cache/org.scala-lang/scala-library/srcs/scala-library-2.11.11-sources.jar!/scala/collection/immutable/Map.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="82">
+          <caret line="78" column="7" lean-forward="false" selection-start-line="78" selection-start-column="7" selection-end-line="78" selection-end-column="7" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="jar://$USER_HOME$/.ivy2/cache/org.scala-lang/scala-library/srcs/scala-library-2.11.11-sources.jar!/scala/Predef.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="164">
+          <caret line="100" column="31" lean-forward="true" selection-start-line="100" selection-start-column="31" selection-end-line="100" selection-end-column="31" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="jar://$USER_HOME$/.ivy2/cache/org.scala-lang/scala-library/srcs/scala-library-2.11.11-sources.jar!/scala/collection/IterableLike.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="164">
+          <caret line="70" column="6" lean-forward="false" selection-start-line="70" selection-start-column="6" selection-end-line="70" selection-end-column="6" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/matrix/Slave.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="300">
-          <caret line="27" column="0" lean-forward="true" selection-start-line="27" selection-start-column="0" selection-end-line="27" selection-end-column="0" />
+        <state relative-caret-position="2040">
+          <caret line="120" column="41" lean-forward="true" selection-start-line="120" selection-start-column="41" selection-end-line="120" selection-end-column="41" />
           <folding>
             <element signature="e#16#37#0" expanded="true" />
           </folding>
