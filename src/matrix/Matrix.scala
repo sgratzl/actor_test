@@ -15,7 +15,6 @@ case class Matrix(values: IndexedSeq[IndexedSeq[Int]]) {
         arow.zip(bcol).map((t) => t._1 * t._2).sum
       }
     }
-    println(values)
     Matrix(values)
   }
 }

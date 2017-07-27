@@ -8,13 +8,58 @@ object Main {
     Usage: matrix [--slaves <num>] --mode <(master|slave)> --file <file>
   """
 
-  def main(args: Array[String]) {
-    val (mode, slaves, file) = parseArgs(args)
-    println(mode, slaves, file)
+  def runMaster(slaves: Int, file: String): Unit = {
     val a = loadFile(s"./data/${file}a.csv")
     val b = loadFile(s"./data/${file}b.csv")
     val c = loadFile(s"./data/${file}c.csv")
 
+    if (slaves == 0) {
+      val ab = a * b
+      println(ab == c)
+      writeFile(s"./data/${file}ab.csv", ab)
+    } else {
+      import matrix.Kill
+      import scala.actors.Actor._
+      import scala.actors.remote._
+      import scala.actors.remote.RemoteActor._
+      val slaveActors = (0 until slaves).map((i) => select(Node(s"slave$i", 9000), Symbol(s"slave$i")))
+
+      println("Start sending messages")
+      actor {
+        for(slave <- slaveActors) {
+          slave ! "Hello"
+        }
+        {
+          var missing = slaveActors.length
+          react {
+            case msg: String =>
+              println(s"slave: $msg")
+              missing -= 1
+              sender ! Kill
+              if (missing == 0) {
+                println("Done")
+                exit(0)
+              }
+          }
+        }
+      }
+    }
+  }
+
+  def runSlave(slave: Int): Unit = {
+    import matrix.Slave
+    println("Starting Slave")
+    new Slave(slave).start()
+  }
+
+  def main(args: Array[String]) {
+    val (mode, slaves, file) = parseArgs(args)
+    println(mode, slaves, file)
+
+    mode match {
+      case "master" => runMaster(slaves, file)
+      case "slave" => runSlave(slaves)
+    }
   }
 
   def parseArgs(args: Array[String]): (String, Int, String) = {
@@ -39,5 +84,15 @@ object Main {
     import scala.io.Source
     val values = Source.fromFile(file, "utf-8").getLines().map(_.split("\t").map(_.toInt).toIndexedSeq).toIndexedSeq
     Matrix(values)
+  }
+
+  def writeFile(file: String, matrix: Matrix): Unit = {
+    import java.io.PrintWriter
+    val w = new PrintWriter("filename")
+    val v = matrix.values
+    for (row <- v) {
+      w.println(row.map(_.toString).mkString("\t"))
+    }
+    w.close()
   }
 }

@@ -5,13 +5,13 @@ services:
     volumes:
       - '.:/ws'
     working_dir: /ws
-    command: 'java -cp .:lib/scala-library-2.12.2.jar:out/production/distributed_matrix --mode=slave'
+    command: 'java -cp .:lib/scala-library-2.11.11.jar:lib/scala-actors-2.11.2.jar:out/production/distributed_matrix Main --mode slave --slaves 0'
   slave1:
     image: openjdk:jre-alpine
     volumes:
       - '.:/ws'
     working_dir: /ws
-    command: 'java -cp .:lib/scala-library-2.12.2.jar:out/production/distributed_matrix --mode=slave'
+    command: 'java -cp .:lib/scala-library-2.11.11.jar:lib/scala-actors-2.11.2.jar:out/production/distributed_matrix Main --mode slave --slaves 1'
   master:
     image: openjdk:jre-alpine
     depends_on:
@@ -23,4 +23,4 @@ services:
     volumes:
       - '.:/ws'
     working_dir: /ws
-    command: 'java -cp .:lib/scala-library-2.12.2.jar:out/production/distributed_matrix --mode=master --slaves2 ./data/10'
+    command: 'java -cp .:lib/scala-library-2.11.11.jar:lib/scala-actors-2.11.2.jar:out/production/distributed_matrix Main --mode master --slaves 2 --file 10'
