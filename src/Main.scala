@@ -1,4 +1,4 @@
-import matrix.Matrix
+import matrix.{Kill, Matrix}
 
 
 object Main {
@@ -18,7 +18,7 @@ object Main {
       println(ab == c)
       writeFile(s"./data/${file}ab.csv", ab)
     } else {
-      import matrix.Kill
+      import matrix._
       import scala.actors.Actor._
       import scala.actors.remote.Node
       import scala.actors.remote.RemoteActor.select
@@ -26,11 +26,12 @@ object Main {
       actor {
         println("Start sending messages")
         val s = (0 until slaves).map((i) => select(Node(s"slave$i", 9000), Symbol(s"slave$i")))
-        for (slave <- s) {
-          slave ! "Hello"
-        }
-        var missing = slaves
-        loopWhile(missing > 0) {
+
+        var computed = false
+
+        var x = divider()
+
+        loopWhile(!computed) {
           react {
             case msg: String =>
               println(s"slave: $msg")

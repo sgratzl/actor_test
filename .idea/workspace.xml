@@ -2,9 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="8bdb2339-5c66-4f07-b10e-2d22f8a26fc2" name="Default" comment="">
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/matrix/Cannon.scala" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/Main.scala" afterPath="$PROJECT_DIR$/src/Main.scala" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/matrix/Master.scala" afterPath="$PROJECT_DIR$/src/matrix/Master.scala" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/matrix/Matrix.scala" afterPath="$PROJECT_DIR$/src/matrix/Matrix.scala" />
     </list>
     <ignored path="$PROJECT_DIR$/out/" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -16,14 +17,12 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="Main.scala" pinned="false" current-in-tab="true">
+      <file leaf-file-name="Main.scala" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/Main.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="425">
-              <caret line="41" column="25" lean-forward="false" selection-start-line="41" selection-start-column="25" selection-end-line="41" selection-end-column="25" />
-              <folding>
-                <element signature="e#495#513#0" expanded="true" />
-              </folding>
+            <state relative-caret-position="68">
+              <caret line="20" column="21" lean-forward="false" selection-start-line="20" selection-start-column="21" selection-end-line="20" selection-end-column="21" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -85,8 +84,28 @@
       <file leaf-file-name="Matrix.scala" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/matrix/Matrix.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="272">
-              <caret line="16" column="5" lean-forward="false" selection-start-line="16" selection-start-column="5" selection-end-line="16" selection-end-column="5" />
+            <state relative-caret-position="306">
+              <caret line="18" column="3" lean-forward="true" selection-start-line="18" selection-start-column="3" selection-end-line="18" selection-end-column="3" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="Cannon.scala" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/src/matrix/Cannon.scala">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="68">
+              <caret line="4" column="0" lean-forward="false" selection-start-line="4" selection-start-column="0" selection-end-line="4" selection-end-column="0" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="GenTraversableFactory.scala" pinned="false" current-in-tab="false">
+        <entry file="jar://$USER_HOME$/.ivy2/cache/org.scala-lang/scala-library/srcs/scala-library-2.11.11-sources.jar!/scala/collection/generic/GenTraversableFactory.scala">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="184">
+              <caret line="84" column="6" lean-forward="false" selection-start-line="84" selection-start-column="6" selection-end-line="84" selection-end-column="6" />
               <folding />
             </state>
           </provider>
@@ -102,16 +121,6 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="README.md" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/README.md">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="85">
-              <caret line="5" column="27" lean-forward="false" selection-start-line="5" selection-start-column="27" selection-end-line="5" selection-end-column="27" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
     </leaf>
   </component>
   <component name="Git.Settings">
@@ -122,17 +131,19 @@
       <list>
         <option value="$PROJECT_DIR$/README.md" />
         <option value="$PROJECT_DIR$/src/Matrix.scala" />
-        <option value="$PROJECT_DIR$/src/matrix/Matrix.scala" />
         <option value="$PROJECT_DIR$/docker-compose.yml" />
         <option value="$PROJECT_DIR$/src/matrix/Slave.scala" />
         <option value="$PROJECT_DIR$/src/matrix/Master.scala" />
+        <option value="$PROJECT_DIR$/src/matrix/algorithm.scala" />
         <option value="$PROJECT_DIR$/src/Main.scala" />
+        <option value="$PROJECT_DIR$/src/matrix/Matrix.scala" />
+        <option value="$PROJECT_DIR$/src/matrix/ParallelJW.scala" />
       </list>
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="260" />
-    <option name="y" value="20" />
+    <option name="x" value="636" />
+    <option name="y" value="31" />
     <option name="width" value="1400" />
     <option name="height" value="1000" />
   </component>
@@ -192,32 +203,6 @@
               <item name="matrix" type="b2602c69:ProjectViewProjectNode" />
               <item name="distributed_matrix" type="462c0819:PsiDirectoryNode" />
               <item name="lib" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="matrix" type="b2602c69:ProjectViewProjectNode" />
-              <item name="distributed_matrix" type="462c0819:PsiDirectoryNode" />
-              <item name="out" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="matrix" type="b2602c69:ProjectViewProjectNode" />
-              <item name="distributed_matrix" type="462c0819:PsiDirectoryNode" />
-              <item name="out" type="462c0819:PsiDirectoryNode" />
-              <item name="production" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="matrix" type="b2602c69:ProjectViewProjectNode" />
-              <item name="distributed_matrix" type="462c0819:PsiDirectoryNode" />
-              <item name="out" type="462c0819:PsiDirectoryNode" />
-              <item name="production" type="462c0819:PsiDirectoryNode" />
-              <item name="distributed_matrix" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="matrix" type="b2602c69:ProjectViewProjectNode" />
-              <item name="distributed_matrix" type="462c0819:PsiDirectoryNode" />
-              <item name="out" type="462c0819:PsiDirectoryNode" />
-              <item name="production" type="462c0819:PsiDirectoryNode" />
-              <item name="distributed_matrix" type="462c0819:PsiDirectoryNode" />
-              <item name="matrix" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
               <item name="matrix" type="b2602c69:ProjectViewProjectNode" />
@@ -369,7 +354,7 @@
     <option name="remove_strategy" value="false" />
   </component>
   <component name="ToolWindowManager">
-    <frame x="260" y="20" width="1400" height="1000" extended-state="0" />
+    <frame x="636" y="31" width="1400" height="1000" extended-state="0" />
     <editor active="true" />
     <layout>
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
@@ -404,7 +389,8 @@
     <MESSAGE value="fix matrix multiplication" />
     <MESSAGE value="fix compile errors" />
     <MESSAGE value="working client server" />
-    <option name="LAST_COMMIT_MESSAGE" value="working client server" />
+    <MESSAGE value="simplify" />
+    <option name="LAST_COMMIT_MESSAGE" value="simplify" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -527,14 +513,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/matrix/Matrix.scala">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="272">
-          <caret line="16" column="5" lean-forward="false" selection-start-line="16" selection-start-column="5" selection-end-line="16" selection-end-column="5" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/matrix/Master.scala">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="17">
@@ -555,13 +533,43 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/src/matrix/algorithm.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="14" lean-forward="false" selection-start-line="0" selection-start-column="14" selection-end-line="0" selection-end-column="14" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/Main.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="425">
-          <caret line="41" column="25" lean-forward="false" selection-start-line="41" selection-start-column="25" selection-end-line="41" selection-end-column="25" />
-          <folding>
-            <element signature="e#495#513#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="68">
+          <caret line="20" column="21" lean-forward="false" selection-start-line="20" selection-start-column="21" selection-end-line="20" selection-end-column="21" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/matrix/Matrix.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="306">
+          <caret line="18" column="3" lean-forward="true" selection-start-line="18" selection-start-column="3" selection-end-line="18" selection-end-column="3" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="jar://$USER_HOME$/.ivy2/cache/org.scala-lang/scala-library/srcs/scala-library-2.11.11-sources.jar!/scala/collection/generic/GenTraversableFactory.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="184">
+          <caret line="84" column="6" lean-forward="false" selection-start-line="84" selection-start-column="6" selection-end-line="84" selection-end-column="6" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/src/matrix/Cannon.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="68">
+          <caret line="4" column="0" lean-forward="false" selection-start-line="4" selection-start-column="0" selection-end-line="4" selection-end-column="0" />
+          <folding />
         </state>
       </provider>
     </entry>

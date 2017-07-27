@@ -17,5 +17,6 @@ case class Matrix(values: IndexedSeq[IndexedSeq[Int]]) {
     }
     Matrix(values)
   }
-}
 
+  def max = values.flatten.max
+}
