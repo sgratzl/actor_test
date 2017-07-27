@@ -1,90 +1,18 @@
 version: '2.0'
 services:
-  slave0:
+  slave:
     image: openjdk:jre-alpine
     volumes:
       - '.:/ws'
     working_dir: /ws
-    command: 'java -cp .:lib/scala-library-2.11.11.jar:lib/scala-actors-2.11.2.jar:out/production/distributed_matrix Main --mode slave --slaves 10 --index 0'
-  slave1:
-    image: openjdk:jre-alpine
-    volumes:
-      - '.:/ws'
-    working_dir: /ws
-    command: 'java -cp .:lib/scala-library-2.11.11.jar:lib/scala-actors-2.11.2.jar:out/production/distributed_matrix Main --mode slave --slaves 10 --index 1'
-  slave2:
-      image: openjdk:jre-alpine
-      volumes:
-        - '.:/ws'
-      working_dir: /ws
-      command: 'java -cp .:lib/scala-library-2.11.11.jar:lib/scala-actors-2.11.2.jar:out/production/distributed_matrix Main --mode slave --slaves 10 --index 2'
-  slave3:
-      image: openjdk:jre-alpine
-      volumes:
-        - '.:/ws'
-      working_dir: /ws
-      command: 'java -cp .:lib/scala-library-2.11.11.jar:lib/scala-actors-2.11.2.jar:out/production/distributed_matrix Main --mode slave --slaves 10 --index 3'
-  slave4:
-      image: openjdk:jre-alpine
-      volumes:
-        - '.:/ws'
-      working_dir: /ws
-      command: 'java -cp .:lib/scala-library-2.11.11.jar:lib/scala-actors-2.11.2.jar:out/production/distributed_matrix Main --mode slave --slaves 10 --index 4'
-  slave5:
-      image: openjdk:jre-alpine
-      volumes:
-        - '.:/ws'
-      working_dir: /ws
-      command: 'java -cp .:lib/scala-library-2.11.11.jar:lib/scala-actors-2.11.2.jar:out/production/distributed_matrix Main --mode slave --slaves 10 --index 5'
-  slave6:
-      image: openjdk:jre-alpine
-      volumes:
-        - '.:/ws'
-      working_dir: /ws
-      command: 'java -cp .:lib/scala-library-2.11.11.jar:lib/scala-actors-2.11.2.jar:out/production/distributed_matrix Main --mode slave --slaves 10 --index 6'
-  slave7:
-      image: openjdk:jre-alpine
-      volumes:
-        - '.:/ws'
-      working_dir: /ws
-      command: 'java -cp .:lib/scala-library-2.11.11.jar:lib/scala-actors-2.11.2.jar:out/production/distributed_matrix Main --mode slave --slaves 10 --index 7'
-  slave8:
-      image: openjdk:jre-alpine
-      volumes:
-        - '.:/ws'
-      working_dir: /ws
-      command: 'java -cp .:lib/scala-library-2.11.11.jar:lib/scala-actors-2.11.2.jar:out/production/distributed_matrix Main --mode slave --slaves 10 --index 8'
-  slave9:
-      image: openjdk:jre-alpine
-      volumes:
-        - '.:/ws'
-      working_dir: /ws
-      command: 'java -cp .:lib/scala-library-2.11.11.jar:lib/scala-actors-2.11.2.jar:out/production/distributed_matrix Main --mode slave --slaves 10 --index 9'
+    command: 'java -cp ".:lib/*:out/production/distributed_matrix" Main --mode slave'
   master:
     image: openjdk:jre-alpine
     depends_on:
-      - slave0
-      - slave1
-      - slave2
-      - slave3
-      - slave4
-      - slave5
-      - slave6
-      - slave7
-      - slave8
-      - slave9
+      - slave
     links:
-      - slave0
-      - slave1
-      - slave2
-      - slave3
-      - slave4
-      - slave5
-      - slave6
-      - slave7
-      - slave8
-      - slave9
+      - slave
     volumes:
       - '.:/ws'
     working_dir: /ws
-    command: "java -cp .:lib/scala-library-2.11.11.jar:lib/scala-actors-2.11.2.jar:out/production/distributed_matrix Main --mode master --slaves 10 --file 1000"
+    command: 'java -cp ".:lib/*:out/production/distributed_matrix" --mode master --slaves 10 --file 100'

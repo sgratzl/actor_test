@@ -6,7 +6,7 @@ import scala.actors.remote._
 import scala.actors.remote.RemoteActor._
 import scala.collection.mutable
 
-case class Init(n: Short)
+case class Init(n: Short, slaves: Int, index: Int)
 
 case class At(i: Short, j: Short)
 
@@ -24,15 +24,20 @@ class GridNode(var a: Int = 0, var b: Int = 0, var c: Int = 0) {
 }
 
 case class SlaveLookup(n: Int, slaves: Int, index: Int, self: Actor) {
-  val remotes: IndexedSeq[OutputChannel[Any]] = (0 to slaves).map((i) => if (i == index) self else select(Node(s"slave$i", 9000), Symbol(s"slave$i")))
+  val remotes: IndexedSeq[OutputChannel[Any]] = (0 to slaves).map((i) => if (i == index) self else select(Node(s"slave_${i+1}", 9000), Symbol(s"slave$i")))
+  val perSlave = n / slaves
+  def index(i: Int, j: Int) = {
+    (i / perSlave) % slaves
+    //val abs = (i * n) + j
+    //abs % slaves
+  }
 
   def apply(at: At): OutputChannel[Any] = {
-    val abs = (at.i * n) + at.j
-    remotes(abs % slaves)
+    remotes(index(at.i, at.j) % slaves)
   }
 
   def nodesOf(slave: Int): Map[At, GridNode] = {
-    val pairs = for (i <- 0 until n; j <- 0 until n if ((i * n) + j) % slaves == slave) yield At(i.asInstanceOf[Short], j.asInstanceOf[Short])
+    val pairs = for (i <- 0 until n; j <- 0 until n if index(i,j) == slave) yield At(i.asInstanceOf[Short], j.asInstanceOf[Short])
     pairs.map(_ -> new GridNode()).toMap
   }
 }
@@ -43,13 +48,13 @@ class Master(val slaves: Int, val a: Matrix, val b: Matrix, val result: (Matrix)
     val n = a.nrow
     val slaveAt = SlaveLookup(n, slaves, -1, null)
 
-    slaveAt.remotes.foreach(_ ! Init(n.asInstanceOf[Short]))
+    slaveAt.remotes.zipWithIndex.foreach((x) => x._1 ! Init(n.asInstanceOf[Short], slaves, x._2))
 
     val assignments = for (i <- 0 until n; j <- 0 until n) yield {
       val at = At(i.asInstanceOf[Short], j.asInstanceOf[Short])
       (slaveAt(at), Assign(at, a.values(i)(j), b.values(i)(j)))
     }
-    assignments.groupBy((kv) => kv._1).foreach((kvs) => kvs._1 ! Assigns(kvs._2.map(_._2)))
+    assignments.groupBy((kv) => kv._1).par.foreach((kvs) => kvs._1 ! Assigns(kvs._2.map(_._2)))
 
     var missing = n * n
     val c = (0 until b.nrow).map((_) => mutable.IndexedSeq.fill(a.ncol)(0)).toIndexedSeq
@@ -75,14 +80,13 @@ class Master(val slaves: Int, val a: Matrix, val b: Matrix, val result: (Matrix)
   }
 }
 
-class Slave(val index: Int, val slaves: Int) extends Actor {
+class Slave() extends Actor {
   def act() {
     alive(9000)
-    register(Symbol(s"slave$index"), self)
+    register(Symbol("slave"), self)
 
     react {
-      case Init(_n) =>
-        val n = _n
+      case Init(n, slaves, index) =>
         val master = sender
         val slaveAt = SlaveLookup(n, slaves, index, this)
         val nodes = slaveAt.nodesOf(index)
@@ -102,7 +106,7 @@ class Slave(val index: Int, val slaves: Int) extends Actor {
               dec -= kvs._2.size
               false
             }
-          }).foreach((kvs) => kvs._1 ! SetValues(kvs._2.map(_._2)))
+          }).par.foreach((kvs) => kvs._1 ! SetValues(kvs._2.map(_._2)))
 
           dec
         }
