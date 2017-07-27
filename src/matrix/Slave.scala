@@ -11,10 +11,13 @@ case class Init(n: Int)
 case class At(i: Int, j: Int)
 
 case class Assign(at: At, a: Int, b: Int)
+case class Assigns(v: Iterable[Assign])
 
 case class SetValue(at: At, what: Symbol, v: Int)
+case class SetValues(v: Iterable[SetValue])
 
 case class Collect(at: At, c: Int)
+case class Collects(v: Iterable[Collect])
 
 class GridNode(var a: Int = 0, var b: Int = 0, var c: Int = 0) {
 
@@ -41,9 +44,12 @@ class Master(val slaves: Int, val a: Matrix, val b: Matrix, val result: (Matrix)
     val slaveAt = SlaveLookup(n, slaves, -1, null)
 
     slaveAt.remotes.foreach(_ ! Init(n))
-    for (i <- 0 until n; j <- 0 until n) {
-      slaveAt(At(i, j)) ! Assign(At(i, j), a.values(i)(j), b.values(i)(j))
+
+    val assignments = for (i <- 0 until n; j <- 0 until n) yield {
+      (slaveAt(At(i, j)), Assign(At(i, j), a.values(i)(j), b.values(i)(j)))
     }
+    assignments.groupBy((kv) => kv._1).foreach((kvs) => kvs._1 ! Assigns(kvs._2.map(_._2)))
+
     var missing = n * n
     val c = (0 until b.nrow).map((_) => mutable.IndexedSeq.fill(a.ncol)(0)).toIndexedSeq
 
@@ -53,6 +59,11 @@ class Master(val slaves: Int, val a: Matrix, val b: Matrix, val result: (Matrix)
           //println(At(i,j), "Collect")
           c(i)(j) = v
           missing -= 1
+        case Collects(vs) =>
+          for ((Collect(At(i,j), v)) <- vs) {
+            c(i)(j) = v
+          }
+          missing -= vs.size
       }
     } andThen {
       //println("Done")
@@ -83,15 +94,24 @@ class Slave(val index: Int, val slaves: Int) extends Actor {
               node.a = a
               node.b = b
               dec -= 1
+            case Assigns(vs) =>
+              for(Assign(at, a, b) <- vs) {
+                val node = nodes(at)
+                node.a = a
+                node.b = b
+              }
+              dec -= vs.size
           }
         } andThen {
-          nodes.foreach((kv) => {
-            val (at, node) = kv
+          val toSend = (for (Tuple2(at, node) <- nodes) yield {
             val targetA = At(at.i, (at.j - at.i + n) % n)
-            slaveAt(targetA) ! SetValue(targetA, 'a, node.a)
+            val a = (slaveAt(targetA), SetValue(targetA, 'a, node.a))
             val targetB = At((at.i - at.j + n) % n, at.j)
-            slaveAt(targetB) ! SetValue(targetB, 'b, node.b)
-          })
+            val b = (slaveAt(targetB), SetValue(targetB, 'b, node.b))
+            Array[(OutputChannel[Any], SetValue)](a, b)
+          }).flatten
+          toSend.groupBy((kv) => kv._1).foreach((kvs) => kvs._1 ! SetValues(kvs._2.map(_._2)))
+
           dec = nodes.size * 2
           loopWhile(dec > 0) {
             react {
@@ -100,6 +120,13 @@ class Slave(val index: Int, val slaves: Int) extends Actor {
                 val node = nodes(at)
                 if (s == 'a) node.a = v else node.b = v
                 dec -= 1
+              case SetValues(vs) =>
+                for(SetValue(at, s, v) <- vs) {
+                  //println(at, "set")
+                  val node = nodes(at)
+                  if (s == 'a) node.a = v else node.b = v
+                }
+                dec -= vs.size
             }
           } andThen {
             var incN = 0
@@ -107,13 +134,15 @@ class Slave(val index: Int, val slaves: Int) extends Actor {
               //println("multiply")
               nodes.values.foreach((v) => v.c += v.a * v.b)
 
-              nodes.foreach((kv) => {
-                val (at, node) = kv
+              val toSend = (for (Tuple2(at, node) <- nodes) yield {
                 val targetA = At(at.i, (at.j - 1 + n) % n)
-                slaveAt(targetA) ! SetValue(targetA, 'a, node.a)
+                val a = (slaveAt(targetA), SetValue(targetA, 'a, node.a))
                 val targetB = At((at.i - 1 + n) % n, at.j)
-                slaveAt(targetB) ! SetValue(targetB, 'b, node.b)
-              })
+                val b = (slaveAt(targetB), SetValue(targetB, 'b, node.b))
+                Array[(OutputChannel[Any], SetValue)](a, b)
+              }).flatten
+              toSend.groupBy((kv) => kv._1).foreach((kvs) => kvs._1 ! SetValues(kvs._2.map(_._2)))
+
               dec = nodes.size * 2
               loopWhile(dec > 0) {
                 react {
@@ -122,6 +151,13 @@ class Slave(val index: Int, val slaves: Int) extends Actor {
                     val node = nodes(at)
                     if (s == 'a) node.a = v else node.b = v
                     dec -= 1
+                  case SetValues(vs) =>
+                    for(SetValue(at, s, v) <- vs) {
+                      //println(at, "set")
+                      val node = nodes(at)
+                      if (s == 'a) node.a = v else node.b = v
+                    }
+                    dec -= vs.size
                 }
               } andThen {
                 incN += 1
@@ -130,7 +166,7 @@ class Slave(val index: Int, val slaves: Int) extends Actor {
               }
             } andThen {
               println("Sent")
-              nodes.foreach((kv) => master ! Collect(kv._1, kv._2.c))
+              master ! Collects(nodes.map((kv) => Collect(kv._1, kv._2.c)))
               println("Kill myself")
               exit()
             }
