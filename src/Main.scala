@@ -1,4 +1,4 @@
-import matrix.{Kill, Matrix, Cannon}
+import matrix.{Matrix, Cannon}
 
 
 object Main {
