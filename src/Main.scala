@@ -19,29 +19,13 @@ object Main {
       println(ab2 == c)
       //writeFile(s"./data/${file}ab.csv", ab)
     } else {
-      import matrix._
-      import scala.actors.Actor._
-      import scala.actors.remote.Node
-      import scala.actors.remote.RemoteActor.select
+      import matrix.Master
 
-      actor {
-        println("Start sending messages")
-        val s = (0 until slaves).map((i) => select(Node(s"slave$i", 9000), Symbol(s"slave$i")))
+      def onResult(ab: Matrix) {
 
-        var missing = 0
-        loopWhile(missing > 0) {
-          react {
-            case msg: String =>
-              println(s"slave: $msg")
-              missing -= 1
-              println(s"missing: $missing")
-              sender ! Kill
-          }
-        } andThen {
-          println("Done kill myself")
-          exit()
-        }
       }
+
+      new Master(slaves, a, b, onResult).start()
     }
   }
 
