@@ -1,4 +1,4 @@
-import matrix.{Kill, Matrix}
+import matrix.{Kill, Matrix, Cannon}
 
 
 object Main {
@@ -15,8 +15,9 @@ object Main {
 
     if (slaves == 0) {
       val ab = a * b
-      println(ab == c)
-      writeFile(s"./data/${file}ab.csv", ab)
+      val ab2 = Cannon(a, b)
+      println(ab2 == c)
+      //writeFile(s"./data/${file}ab.csv", ab)
     } else {
       import matrix._
       import scala.actors.Actor._
@@ -27,11 +28,8 @@ object Main {
         println("Start sending messages")
         val s = (0 until slaves).map((i) => select(Node(s"slave$i", 9000), Symbol(s"slave$i")))
 
-        var computed = false
-
-        var x = divider()
-
-        loopWhile(!computed) {
+        var missing = 0
+        loopWhile(missing > 0) {
           react {
             case msg: String =>
               println(s"slave: $msg")

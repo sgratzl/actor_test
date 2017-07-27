@@ -6,8 +6,8 @@ object Cannon {
   type Ints = IndexedSeq[Int]
   type IntsInts = IndexedSeq[Ints]
 
-  def compute(a: Matrix, b: Matrix) = {
-    val n = 3
+  def apply(a: Matrix, b: Matrix): Matrix = {
+    val n = a.nrow
     def circularShift(v: IntsInts): IntsInts = {
       v.zipWithIndex.map((v) => {
         val (row, i) = v
@@ -29,10 +29,11 @@ object Cannon {
     for (k <- 1 to n) {
       for (i <- 0 until n; j <- 0 until n) {
         c(i)(j) += aShifted(i)(j) * bShiftedTransposed(j)(i)
-        aShifted = circularShift1(aShifted)
-        bShiftedTransposed = circularShift1(bShiftedTransposed)
       }
+      aShifted = circularShift1(aShifted)
+      bShiftedTransposed = circularShift1(bShiftedTransposed)
     }
+    Matrix(c.map(_.toIndexedSeq))
   }
 }
 
