@@ -16,50 +16,53 @@ object Main {
     if (slaves == 0) {
       val ab = a * b
       val ab2 = Cannon(a, b)
+      println(ab == c)
       println(ab2 == c)
       //writeFile(s"./data/${file}ab.csv", ab)
     } else {
       import matrix.Master
 
       def onResult(ab: Matrix) {
-
+        println(ab == c)
       }
 
       new Master(slaves, a, b, onResult).start()
     }
   }
 
-  def runSlave(slave: Int): Unit = {
+  def runSlave(index: Int, slaves: Int): Unit = {
     import matrix.Slave
     println("Starting Slave")
-    new Slave(slave).start()
+    new Slave(index, slaves).start()
   }
 
   def main(args: Array[String]) {
-    val (mode, slaves, file) = parseArgs(args)
+    val (mode, slaves, file, index) = parseArgs(args)
     println(mode, slaves, file)
 
     mode match {
       case "master" => runMaster(slaves, file)
-      case "slave" => runSlave(slaves)
+      case "slave" => runSlave(index, slaves)
     }
   }
 
-  def parseArgs(args: Array[String]): (String, Int, String) = {
+  def parseArgs(args: Array[String]): (String, Int, String, Int) = {
     if (args.length == 0) {
       println(usage)
     }
 
     var mode = "master"
     var slaves = 0
+    var index = 0
     var file = ""
     args.sliding(2, 2).toList.collect {
-      case Array("--mode", modeN: String) => mode = modeN
-      case Array("--slaves", slavesN: String) => slaves = slavesN.toInt
-      case Array("--file", fileN: String) => file = fileN
+      case Array("--mode", v: String) => mode = v
+      case Array("--slaves", v: String) => slaves = v.toInt
+      case Array("--index", v: String) => index = v.toInt
+      case Array("--file", v: String) => file = v
     }
 
-    (mode, slaves, file)
+    (mode, slaves, file, index)
   }
 
 

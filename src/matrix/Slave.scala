@@ -41,7 +41,7 @@ class Master(val slaves: Int, val a: Matrix, val b: Matrix, val result: (Matrix)
 
     slaveAt.remotes.foreach(_ ! Init(n))
     for (i <- 0 until n; j <- 0 until n) {
-      slaveAt(i, j) ! Assign(At(i, j), a.values(i)(j), b.values(i)(j))
+      slaveAt(At(i, j)) ! Assign(At(i, j), a.values(i)(j), b.values(i)(j))
     }
     var missing = n * n
     val c = (0 until b.nrow).map((_) => mutable.IndexedSeq.fill(a.ncol)(0)).toIndexedSeq
@@ -49,6 +49,7 @@ class Master(val slaves: Int, val a: Matrix, val b: Matrix, val result: (Matrix)
     loopWhile(missing > 0) {
       react {
         case Collect(At(i, j), v) =>
+          println(At(i,j), "Collect")
           c(i)(j) = v
           missing -= 1
       }
@@ -76,6 +77,7 @@ class Slave(val index: Int, val slaves: Int) extends Actor {
         loopWhile(dec > 0) {
           react {
             case Assign(at, a, b) =>
+              println(at, "assign")
               val node = nodes(at)
               node.a = a
               node.b = b
@@ -93,6 +95,7 @@ class Slave(val index: Int, val slaves: Int) extends Actor {
           loopWhile(dec > 0) {
             react {
               case SetValue(at, s, v) =>
+                println(at, "set")
                 val node = nodes(at)
                 if (s == 'a) node.a = v else node.b = v
                 dec -= 1
@@ -100,7 +103,9 @@ class Slave(val index: Int, val slaves: Int) extends Actor {
           } andThen {
             var incN = 0
             loopWhile(incN < n) {
+              println("multiply")
               nodes.values.foreach((v) => v.c += v.a * v.b)
+
               nodes.foreach((kv) => {
                 val (at, node) = kv
                 val targetA = At(at.i, (at.j - 1) % n)
@@ -112,6 +117,7 @@ class Slave(val index: Int, val slaves: Int) extends Actor {
               loopWhile(dec > 0) {
                 react {
                   case SetValue(at, s, v) =>
+                    println(at, "set")
                     val node = nodes(at)
                     if (s == 'a) node.a = v else node.b = v
                     dec -= 1
@@ -122,6 +128,7 @@ class Slave(val index: Int, val slaves: Int) extends Actor {
                 continue()
               }
             } andThen {
+              println("Sent")
               nodes.foreach((kv) => master ! Collect(kv._1, kv._2.c))
               println("Kill myself")
               exit()
