@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="8bdb2339-5c66-4f07-b10e-2d22f8a26fc2" name="Default" comment="fix compile errors">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/src/matrix/Master.scala" />
+    <list default="true" id="8bdb2339-5c66-4f07-b10e-2d22f8a26fc2" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/Main.scala" afterPath="$PROJECT_DIR$/src/Main.scala" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/matrix/Slave.scala" afterPath="$PROJECT_DIR$/src/matrix/Slave.scala" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/matrix/Master.scala" afterPath="$PROJECT_DIR$/src/matrix/Master.scala" />
     </list>
     <ignored path="$PROJECT_DIR$/out/" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -20,9 +19,11 @@
       <file leaf-file-name="Main.scala" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/Main.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="51">
-              <caret line="3" column="13" lean-forward="true" selection-start-line="3" selection-start-column="13" selection-end-line="3" selection-end-column="13" />
-              <folding />
+            <state relative-caret-position="425">
+              <caret line="41" column="25" lean-forward="false" selection-start-line="41" selection-start-column="25" selection-end-line="41" selection-end-column="25" />
+              <folding>
+                <element signature="e#495#513#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -30,9 +31,11 @@
       <file leaf-file-name="Master.scala" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/matrix/Master.scala">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="34">
-              <caret line="2" column="25" lean-forward="false" selection-start-line="2" selection-start-column="25" selection-end-line="2" selection-end-column="25" />
-              <folding />
+            <state relative-caret-position="17">
+              <caret line="1" column="0" lean-forward="false" selection-start-line="1" selection-start-column="0" selection-end-line="2" selection-end-column="25" />
+              <folding>
+                <element signature="e#16#41#0" expanded="true" />
+              </folding>
             </state>
           </provider>
         </entry>
@@ -400,7 +403,8 @@
     <MESSAGE value="fix matrix multiplicatoin" />
     <MESSAGE value="fix matrix multiplication" />
     <MESSAGE value="fix compile errors" />
-    <option name="LAST_COMMIT_MESSAGE" value="fix compile errors" />
+    <MESSAGE value="working client server" />
+    <option name="LAST_COMMIT_MESSAGE" value="working client server" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -531,6 +535,16 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/src/matrix/Master.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="17">
+          <caret line="1" column="0" lean-forward="false" selection-start-line="1" selection-start-column="0" selection-end-line="2" selection-end-column="25" />
+          <folding>
+            <element signature="e#16#41#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/matrix/Slave.scala">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="187">
@@ -541,19 +555,13 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/matrix/Master.scala">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="34">
-          <caret line="2" column="25" lean-forward="false" selection-start-line="2" selection-start-column="25" selection-end-line="2" selection-end-column="25" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/Main.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="51">
-          <caret line="3" column="13" lean-forward="true" selection-start-line="3" selection-start-column="13" selection-end-line="3" selection-end-column="13" />
-          <folding />
+        <state relative-caret-position="425">
+          <caret line="41" column="25" lean-forward="false" selection-start-line="41" selection-start-column="25" selection-end-line="41" selection-end-column="25" />
+          <folding>
+            <element signature="e#495#513#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
