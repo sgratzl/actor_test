@@ -36,7 +36,7 @@ object Main {
   def runSlave(index: Int, slaves: Int): Unit = {
     import matrix.Slave
     println("Starting Slave")
-    new Slave(index, slaves).start()
+    new Slave().start()
   }
 
   def main(args: Array[String]) {

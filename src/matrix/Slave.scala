@@ -6,7 +6,7 @@ import scala.actors.remote._
 import scala.actors.remote.RemoteActor._
 import scala.collection.mutable
 
-case class Init(n: Short, slaves: Int, index: Int)
+case class Init(n: Short, index: Int, slaves: IndexedSeq[AbstractActor])
 
 case class At(i: Short, j: Short)
 
@@ -23,9 +23,10 @@ class GridNode(var a: Int = 0, var b: Int = 0, var c: Int = 0) {
 
 }
 
-case class SlaveLookup(n: Int, slaves: Int, index: Int, self: Actor) {
-  val remotes: IndexedSeq[OutputChannel[Any]] = (0 to slaves).map((i) => if (i == index) self else select(Node(s"slave_${i+1}", 9000), Symbol(s"slave$i")))
+case class SlaveLookup(n: Int, remotes: IndexedSeq[AbstractActor], index: Int) {
+  val slaves = remotes.length
   val perSlave = n / slaves
+
   def index(i: Int, j: Int) = {
     (i / perSlave) % slaves
     //val abs = (i * n) + j
@@ -46,9 +47,10 @@ case class SlaveLookup(n: Int, slaves: Int, index: Int, self: Actor) {
 class Master(val slaves: Int, val a: Matrix, val b: Matrix, val result: (Matrix) => Unit) extends Actor {
   def act() {
     val n = a.nrow
-    val slaveAt = SlaveLookup(n, slaves, -1, null)
+    println("collecting slaves")
+    val slaveAt = SlaveLookup(n, (0 until slaves).map((i) => select(Node(s"slave_${i+1}", 9000), Symbol(s"slave"))), -1)
 
-    slaveAt.remotes.zipWithIndex.foreach((x) => x._1 ! Init(n.asInstanceOf[Short], slaves, x._2))
+    slaveAt.remotes.zipWithIndex.foreach((x) => x._1 ! Init(n.asInstanceOf[Short], x._2, slaveAt.remotes))
 
     val assignments = for (i <- 0 until n; j <- 0 until n) yield {
       val at = At(i.asInstanceOf[Short], j.asInstanceOf[Short])
@@ -86,9 +88,10 @@ class Slave() extends Actor {
     register(Symbol("slave"), self)
 
     react {
-      case Init(n, slaves, index) =>
+      case Init(n, index, slaves) =>
         val master = sender
-        val slaveAt = SlaveLookup(n, slaves, index, this)
+        var replace = slaves.take(index) ++ Array(this) ++ slaves.drop(index + 1)
+        val slaveAt = SlaveLookup(n, replace, index)
         val nodes = slaveAt.nodesOf(index)
 
         def sendAll(toSend: Iterable[(OutputChannel[Any], SetValue)]): Int = {

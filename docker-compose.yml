@@ -15,4 +15,4 @@ services:
     volumes:
       - '.:/ws'
     working_dir: /ws
-    command: 'java -cp ".:lib/*:out/production/distributed_matrix" --mode master --slaves 10 --file 100'
+    command: 'java -cp ".:lib/*:out/production/distributed_matrix" Main --mode master --slaves 3 --file 10'
