@@ -1,18 +1,18 @@
-import matrix.Cannon
-import utils.loadFile
+import tasks._
+
+import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.Duration
+import scala.util.{Failure, Success}
 
 
-object Local extends App {
-  val file = args(0)
+object Local extends App{
+  val a = args(0).toInt
+  val task = args(1)
+  val b = args(2).toInt
 
-  val a = loadFile(s"./data/${file}a.csv")
-  val b = loadFile(s"./data/${file}b.csv")
-  val c = loadFile(s"./data/${file}c.csv")
-
-  val n = a.nrow
-
-  val ab = a * b
-  val ab2 = Cannon(a, b)
-  println(s"$n: A * B = C ${if (ab == c) "CORRECT" else "INCORRECT"}")
-  println(s"$n: CANNON A * B = C ${if (ab2 == c) "CORRECT" else "INCORRECT"}")
+  println(s"${a} ${task} ${b} = ")
+  println("wait for it...")
+  val r = Await.result(Task(TaskType.Plus, a, b).compute(), Duration("1000s"))
+  println(r.c)
 }

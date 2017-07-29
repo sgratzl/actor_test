@@ -1,14 +1,21 @@
-import matrix.{Matrix, Cannon}
-import utils.loadFile
+import tasks.{Task, TaskType}
+
+import scala.concurrent.Await
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.Duration
+import scala.util.{Failure, Success}
 
 
-object Master extends App{
-  val file = args(0)
-  val a = loadFile(s"./data/${file}a.csv")
-  val b = loadFile(s"./data/${file}b.csv")
-  val c = loadFile(s"./data/${file}c.csv")
+object Master extends App {
+  val schedule = new Scheduler()
 
-  val n = a.nrow
+  val a = args(0).toInt
+  val task = args(1)
+  val b = args(2).toInt
 
-  //TODO
+  println(s"${a} ${task} ${b} = ")
+  println("wait for it...")
+
+  val r = Await.result(schedule(TaskType.Plus, a, b), Duration("100s"))
+  println(r)
 }
