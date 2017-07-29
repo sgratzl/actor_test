@@ -8,14 +8,12 @@ import scala.concurrent.duration.Duration
 object Master extends App {
   val schedule = new Scheduler()
 
-  val a = args(0).toInt
-  val task = args(1)
-  val b = args(2).toInt
+  val count = args(0).toInt
 
-  println(s"${a} ${task} ${b} = ")
+  println(s"${count} x i * 5 = ")
   println("wait for it...")
 
-  val all = for {i <- 0 to 100} yield schedule(TaskType.Plus, i, b)
+  val all = for {i <- 0 to count} yield schedule(TaskType.values.toIndexedSeq(i % TaskType.values.size), i,5)
 
   val r = Await.result(Future.sequence(all), Duration("100s"))
   Thread.currentThread()
