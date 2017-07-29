@@ -1,9 +1,8 @@
+import java.io.{ObjectInputStream, ObjectOutputStream}
 import java.net.InetSocketAddress
-import java.nio.ByteBuffer
-
 import scala.util.{Failure, Success}
-import tasks._
-import java.nio.channels.AsynchronousSocketChannel
+import calc.{compute, Equation}
+import java.nio.channels.{AsynchronousSocketChannel, Channels}
 import java.util.concurrent.locks.{Lock, ReentrantLock}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -13,17 +12,16 @@ import scala.util.control.Breaks.{break, breakable}
 object Slave extends App {
   val hostname = if (args.length > 0) args(0) else "master"
   val db = new DB(if (args.length > 1) args(1) else "db")
+  println("start")
 
-  val client = AsynchronousSocketChannel.open
-  println(s"${client.getLocalAddress}s start")
-
-  var tries = 0
-  breakable {
-    for( i <- 0 until 10) {
+  private def connect(): AsynchronousSocketChannel = {
+    var tries = 0
+    for(i <- 0 until 10) {
       try {
+        val client = AsynchronousSocketChannel.open
         client.connect(new InetSocketAddress(hostname, 9000)).get()
         //got it
-        break()
+        return client
       } catch {
         case e:ExecutionException => println(s"try $i can not find master")
       }
@@ -33,46 +31,47 @@ object Slave extends App {
     //out of tries
     println("no master found after 10 tries")
     System.exit(1)
+    null
   }
+
+  val client = connect()
   println(s"${client.getLocalAddress}s ${Thread.currentThread()} connected to master: ${client.getRemoteAddress}")
 
-  val byteBuffer = Task.newResultByteBuffer
+  val in = new ObjectInputStream(Channels.newInputStream(client))
+  val out = new ObjectOutputStream(Channels.newOutputStream(client))
 
   val lock = new ReentrantLock()
 
-  def write(arr: ByteBuffer) {
+  def write(taskId: Int, result: AnyRef) {
     lock.lock();  //write sync
     try {
-      client.write(arr).get()
+      out.writeInt(taskId)
+      if (result != null) {
+        out.writeObject(result)
+      }
+      out.flush()
     } finally {
       lock.unlock()
     }
   }
 
   breakable {
+
     while (true) {
       //println(s"${client.getLocalAddress}s ${Thread.currentThread()} wait for tasks")
-      byteBuffer.rewind()
       try {
-        val num = client.read(byteBuffer).get()
-        if (num == 0) {
-          break()
-        }
-        byteBuffer.flip()
-        val task = Task(byteBuffer)
-        println(s"${client.getLocalAddress}s ${Thread.currentThread()} got task: $task")
+        val taskId = in.readInt()
+        val args = in.readObject()
+        println(s"${client.getLocalAddress}s ${Thread.currentThread()} got task: $taskId $args")
 
-        task.compute() onComplete {
+        compute(args.asInstanceOf[Equation]) onComplete {
           case Success(r) =>
-            println(s"${client.getLocalAddress}s ${Thread.currentThread()} success: $r")
-            write(r.byteBuffer)
-          case Failure(TaskException(r)) =>
-            println(s"${client.getLocalAddress}s ${Thread.currentThread()} failure: $r")
-            write(r.byteBuffer)
+            println(s"${client.getLocalAddress}s ${Thread.currentThread()} success: $taskId $r")
+            write(taskId, r.asInstanceOf[AnyRef])
           case Failure(e) =>
-            println(s"${client.getLocalAddress}s ${Thread.currentThread()} unknown error: $e")
+            println(s"${client.getLocalAddress}s ${Thread.currentThread()} failure: $taskId $e")
             e.printStackTrace()
-            write(InvalidTaskResult(task.uid).byteBuffer)
+            write(-taskId, null)
         }
       } catch {
         case e:Exception =>

@@ -1,7 +1,7 @@
+import java.io.{ObjectInputStream, ObjectOutputStream}
 import java.net.InetSocketAddress
 import java.nio.channels.AsynchronousServerSocketChannel.open
-import java.nio.channels.{AsynchronousSocketChannel, CompletionHandler}
-import java.util.Collections
+import java.nio.channels.{AsynchronousSocketChannel, Channels, CompletionHandler}
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.{ConcurrentHashMap, Semaphore}
 
@@ -13,19 +13,23 @@ class Scheduler(val port: Int = 9000, val paralleTasksPerSlave: Int = 5) {
 
   private val tasks = new TaskQueue()
 
-  case class Slave(channel: AsynchronousSocketChannel, tasks: TaskQueue) {
+  case class Slave(channel: AsynchronousSocketChannel) {
     val active = new Semaphore(paralleTasksPerSlave)
     val running = new ConcurrentHashMap[Int, Task]()
+
 
     val writer = new Runnable {
       override def run(): Unit = {
         try {
+          val out = new ObjectOutputStream(Channels.newOutputStream(channel))
           while (true) {
             active.acquire()
             val t = tasks.take()
             running.put(t.uid, t)
             println(s"${channel.getRemoteAddress}m: ${Thread.currentThread()} send task ${running.size()}: $t")
-            channel.write(t.byteBuffer).get()
+            out.writeInt(t.uid)
+            out.writeObject(t.args)
+            out.flush()
           }
         } catch {
           case _: ExecutionException =>
@@ -38,23 +42,19 @@ class Scheduler(val port: Int = 9000, val paralleTasksPerSlave: Int = 5) {
     val reader = new Runnable {
       override def run(): Unit = {
         try {
-          var readBuffer = TaskResult.newResultByteBuffer
+          val in = new ObjectInputStream(Channels.newInputStream(channel))
           while (true) {
             try {
-              readBuffer.rewind()
-              channel.read(readBuffer).get()
-              readBuffer.flip()
-              val uid = readBuffer.getInt()
-              readBuffer.rewind()
+              val uid = in.readInt()
               val task = running.remove(Math.abs(uid))
               active.release()
               if (uid < 0) {
-                println(s"${channel.getRemoteAddress}m: ${Thread.currentThread()} got task result: failure")
+                println(s"${channel.getRemoteAddress}m: ${Thread.currentThread()} got task result: $task failure")
                 task.promise failure null
               } else {
-                val result = TaskResult(readBuffer)
-                println(s"${channel.getRemoteAddress}m: ${Thread.currentThread()} got task result: $result")
-                task.promise success result.c
+                val result = in.readObject()
+                println(s"${channel.getRemoteAddress}m: ${Thread.currentThread()} got task result: $task $result")
+                task.promise success result.asInstanceOf[AnyRef]
               }
             } catch {
               case _: ExecutionException =>
@@ -82,7 +82,7 @@ class Scheduler(val port: Int = 9000, val paralleTasksPerSlave: Int = 5) {
     def completed(channel: AsynchronousSocketChannel, att: Void) {
       listener.accept(null, this)
 
-      val s = Slave(channel, tasks)
+      val s = Slave(channel)
       println(s"${channel.getRemoteAddress}m: Hello master")
       new Thread(s.writer, s"WriterSlaveOf${channel.getRemoteAddress}").start()
       new Thread(s.reader, s"ReaderSlaveOf${channel.getRemoteAddress}").start()
@@ -93,10 +93,10 @@ class Scheduler(val port: Int = 9000, val paralleTasksPerSlave: Int = 5) {
     }
   })
 
-  def apply(task: TaskTypeValue, a: Int, b: Int): Future[Int] = {
-    val p = Promise[Int]()
+  def apply[P<:AnyRef, T](args: P): Future[T] = {
+    val p = Promise[T]()
 
-    val t = Task(counter.incrementAndGet(), task, a, b, p)
+    val t = Task(counter.incrementAndGet(), args, p.asInstanceOf[Promise[AnyRef]])
 
     println(s"schedule ${Thread.currentThread()} $t")
     tasks.add(t)
