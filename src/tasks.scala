@@ -1,5 +1,6 @@
 import java.nio.ByteBuffer
-import java.util.concurrent.ConcurrentLinkedDeque
+import java.util.concurrent.LinkedBlockingDeque
+
 import scala.concurrent.{Future, Promise}
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -13,7 +14,7 @@ package object tasks {
 
   case class TaskException(result: InvalidTaskResult) extends Exception
 
-  type TaskQueue = ConcurrentLinkedDeque[Task]
+  type TaskQueue = LinkedBlockingDeque[Task]
 
   case class Task(task: TaskType.Value, a: Int, b: Int, promise: Promise[Int]) {
     def byteBuffer: ByteBuffer = {
@@ -21,6 +22,7 @@ package object tasks {
       buffer.putInt(task.id)
       buffer.putInt(a)
       buffer.putInt(b)
+      buffer.flip()
       buffer
     }
 
@@ -62,6 +64,7 @@ package object tasks {
       val buffer = ByteBuffer.allocate(4 + 4)
       buffer.putInt(task.id)
       buffer.putInt(c)
+      buffer.flip()
       buffer
     }
   }

@@ -1,9 +1,8 @@
 import tasks.{Task, TaskType}
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
-import scala.util.{Failure, Success}
 
 
 object Master extends App {
@@ -16,6 +15,9 @@ object Master extends App {
   println(s"${a} ${task} ${b} = ")
   println("wait for it...")
 
-  val r = Await.result(schedule(TaskType.Plus, a, b), Duration("100s"))
+  val all = for {i <- 0 to 10000} yield schedule(TaskType.Plus, i, b)
+
+  val r = Await.result(Future.sequence(all), Duration("100s"))
+  Thread.currentThread()
   println(r)
 }

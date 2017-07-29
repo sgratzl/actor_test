@@ -1,28 +1,64 @@
-import java.io._
 import java.net.InetSocketAddress
+import java.nio.{BufferUnderflowException, ByteBuffer}
 
 import scala.util.{Failure, Success}
 import tasks._
 import java.nio.channels.AsynchronousSocketChannel
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.locks.{Lock, ReentrantLock}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.control.Breaks.{break, breakable}
 
 object Slave extends App {
   val client = AsynchronousSocketChannel.open
-  client.connect(new InetSocketAddress("master", 9000)).get()
+  println(s"${client.getLocalAddress}s start")
+  client.connect(new InetSocketAddress("localhost", 9000)).get()
+  println(s"${client.getLocalAddress}s ${Thread.currentThread()} connected to master: ${client.getRemoteAddress}")
 
-  var byteBuffer = Task.newResultByteBuffer
+  val byteBuffer = Task.newResultByteBuffer
 
-  while (true) {
-    client.read(byteBuffer).get()
+  val lock = new ReentrantLock()
 
-    val task = Task(byteBuffer)
-
-    task.compute() onComplete {
-      case Success(r) =>
-        client.write(r.byteBuffer).get()
-      case Failure(TaskException(r)) =>
-        client.write(r.byteBuffer)
+  def write(arr: ByteBuffer) = {
+    lock.lock();  //write sync
+    try {
+      client.write(arr).get()
+    } finally {
+      lock.unlock()
     }
   }
+
+  breakable {
+    while (true) {
+      println(s"${client.getLocalAddress}s ${Thread.currentThread()} wait for tasks")
+      byteBuffer.rewind()
+      try {
+        val num = client.read(byteBuffer).get()
+        println(num)
+        if (num == 0) {
+          break()
+        }
+        byteBuffer.flip()
+        println(byteBuffer.limit())
+        val task = Task(byteBuffer)
+        println(s"${client.getLocalAddress}s ${Thread.currentThread()} got task: $task")
+
+        task.compute() onComplete {
+          case Success(r) =>
+            println(s"${client.getLocalAddress}s ${Thread.currentThread()} success: $r")
+            write(r.byteBuffer)
+          case Failure(TaskException(r)) =>
+            println(s"${client.getLocalAddress}s ${Thread.currentThread()} failure: $r")
+            write(r.byteBuffer)
+        }
+      } catch {
+        case e:Exception =>
+        println(s"${client.getLocalAddress}s ${Thread.currentThread()} master died", e)
+          e.printStackTrace()
+        break()
+      }
+    }
+  }
+  client.close()
 }
