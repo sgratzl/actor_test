@@ -64,7 +64,7 @@ object Slave extends App {
         val args = in.readObject()
         println(s"${client.getLocalAddress}s ${Thread.currentThread()} got task: $taskId $args")
 
-        compute(args.asInstanceOf[Equation]) onComplete {
+        compute(db, args.asInstanceOf[Equation]) onComplete {
           case Success(r) =>
             println(s"${client.getLocalAddress}s ${Thread.currentThread()} success: $taskId $r")
             write(taskId, r.asInstanceOf[AnyRef])

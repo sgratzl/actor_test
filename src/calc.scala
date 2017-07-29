@@ -53,7 +53,7 @@ package object calc {
     Equation(Atom(r(0).toInt), toOp(r(1)), Atom(r(2).toInt))
   }
 
-  def compute(args: Equation): Future[Int] = {
+  def compute(db: AnyRef, args: Equation): Future[Int] = {
     Future {
       args.apply()
     }

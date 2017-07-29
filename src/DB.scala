@@ -18,14 +18,21 @@ class DB(val host: String = "db") {
     override def get() = conn.get().prepareStatement("SELECT value from CELL WHERE uid = ? i = ? AND j = ?")
   })
   private val rowQuery = ThreadLocal.withInitial(new Supplier[PreparedStatement]() {
-    override def get() = conn.get().prepareStatement("SELECT value from CELL WHERE uid = ? i = ?")
+    override def get() = conn.get().prepareStatement("SELECT value from CELL WHERE uid = ? i = ? ORDER BY j")
   })
   private val colQuery = ThreadLocal.withInitial(new Supplier[PreparedStatement]() {
-    override def get() = conn.get().prepareStatement("SELECT value from CELL WHERE uid = ? AND j = ?")
+    override def get() = conn.get().prepareStatement("SELECT value from CELL WHERE uid = ? AND j = ? ORDER BY i")
+  })
+  private val matrixQuery = ThreadLocal.withInitial(new Supplier[PreparedStatement]() {
+    override def get() = conn.get().prepareStatement("SELECT value from CELL WHERE uid = ? AND i >= ? AND i < ? AND j >= ? AND j < ? ORDER BY i, j")
   })
   private val insertQuery = ThreadLocal.withInitial(new Supplier[PreparedStatement]() {
     override def get() = conn.get().prepareStatement("INSERT INTO CELL VALUES(?, ?, ?, ?)")
   })
+  private val addQuery = ThreadLocal.withInitial(new Supplier[PreparedStatement]() {
+    override def get() = conn.get().prepareStatement("UPDATE TABLE CELL SET value = ? WHERE uid = ? AND i = ? AND j = ?")
+  })
+
 
   private def use[R <: AutoCloseable, T](resource: R)(code: R => T): T =
     try
@@ -39,7 +46,7 @@ class DB(val host: String = "db") {
     def next() = rs
   }.toStream
 
-  def cell(uid: Int, i: Int, j: Int): Int = {
+  def getCell(uid: Int, i: Int, j: Int): Int = {
     val p = cellQuery.get()
     p.setInt(1, uid)
     p.setInt(2, i)
@@ -48,7 +55,7 @@ class DB(val host: String = "db") {
     p.executeQuery().getInt(1)
   }
 
-  def row(uid: Int, i: Int): Array[Int] = {
+  def getRow(uid: Int, i: Int): Array[Int] = {
     val p = rowQuery.get()
     p.setInt(1, uid)
     p.setInt(2, i)
@@ -56,7 +63,7 @@ class DB(val host: String = "db") {
     iterate(p.executeQuery()).map(_.getInt(1)).toArray
   }
 
-  def col(uid: Int, j: Int): Array[Int] = {
+  def getCol(uid: Int, j: Int): Array[Int] = {
     val p = colQuery.get()
     p.setInt(1, uid)
     p.setInt(2, j)
@@ -64,7 +71,64 @@ class DB(val host: String = "db") {
     iterate(p.executeQuery()).map(_.getInt(1)).toArray
   }
 
-  def cell_(uid: Int, i: Int, j: Int, v: Int): Boolean = {
+  def getMatrix(uid: Int, iFrom: Int, iTo: Int, jFrom: Int, jTo: Int): Matrix = {
+    val p = matrixQuery.get()
+    p.setInt(1, uid)
+    p.setInt(2, iFrom)
+    p.setInt(3, iTo)
+    p.setInt(4, jFrom)
+    p.setInt(5, jTo)
+
+    val v = iterate(p.executeQuery())
+      .map(_.getInt(1))
+      .grouped(iTo - iFrom)
+      .map(_.toIndexedSeq)
+      .toIndexedSeq
+    Matrix(v)
+  }
+
+  def setMatrix(uid: Int, iFrom: Int, iTo: Int, jFrom: Int, jTo: Int, m: Matrix): Int = {
+    val p = insertQuery.get()
+    p.setInt(1, uid)
+    m.zipWithIndex.foreach({ case (r, i) =>
+      p.setInt(2, i + iFrom)
+      r.zipWithIndex.foreach({ case (v, j) =>
+          p.setInt(3, j + jFrom)
+          p.setInt(4, v)
+          p.addBatch()
+      })
+    })
+    p.executeBatch().sum
+  }
+
+  def init(uid: Int, is: Int, js: Int): Int = {
+    val p = insertQuery.get()
+    p.setInt(1, uid)
+    p.setInt(4, 0)
+    for(i <- 0 until is; j <- 0 until js) {
+      p.setInt(2, i)
+      p.setInt(3, j)
+      p.addBatch()
+    }
+    p.executeBatch().sum
+  }
+
+
+  def addMatrix(uid: Int, iFrom: Int, iTo: Int, jFrom: Int, jTo: Int, m: Matrix): Int = {
+    val p = addQuery.get()
+    p.setInt(1, uid)
+    m.zipWithIndex.foreach({ case (r, i) =>
+      p.setInt(3, i + iFrom)
+      r.zipWithIndex.foreach({ case (v, j) =>
+        p.setInt(4, j + jFrom)
+        p.setInt(2, v)
+        p.addBatch()
+      })
+    })
+    p.executeBatch().sum
+  }
+
+  def setCell(uid: Int, i: Int, j: Int, v: Int): Boolean = {
     val p = insertQuery.get()
     p.setInt(1, uid)
     p.setInt(2, i)
@@ -73,7 +137,7 @@ class DB(val host: String = "db") {
     p.executeUpdate() != 0
   }
 
-  def row_(uid: Int, i: Int, vs: Iterable[Int]): Int = {
+  def setRow(uid: Int, i: Int, vs: Iterable[Int]): Int = {
     val p = insertQuery.get()
     p.setInt(1, uid)
     p.setInt(2, i)
@@ -85,7 +149,7 @@ class DB(val host: String = "db") {
     p.executeBatch().sum
   }
 
-  def col_(uid: Int, j: Int, vs: Iterable[Int]): Int = {
+  def setCol(uid: Int, j: Int, vs: Iterable[Int]): Int = {
     val p = insertQuery.get()
     p.setInt(1, uid)
     p.setInt(3, j)

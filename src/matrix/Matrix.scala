@@ -1,5 +1,7 @@
 package matrix
 
+import scala.collection.mutable
+
 case class Matrix(values: IndexedSeq[IndexedSeq[Int]]) extends IndexedSeq[IndexedSeq[Int]] {
   val nrow: Int = values.length
   val ncol: Int = if (nrow > 0) values(0).length else 0
@@ -29,5 +31,9 @@ object Matrix {
     import scala.io.Source
     val values = Source.fromFile(file, "utf-8").getLines().map(_.split("\t").map(_.toInt).toIndexedSeq).toIndexedSeq
     Matrix(values)
+  }
+
+  def empty(rows: Int, cols: Int): IndexedSeq[mutable.IndexedSeq[Int]] = {
+    (0 until rows).map((_) => mutable.IndexedSeq.fill(cols)(0)).toIndexedSeq
   }
 }

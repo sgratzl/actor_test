@@ -1,6 +1,6 @@
 import matrix.Matrix
-import calc._
 
+import multiply._
 import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
@@ -14,13 +14,15 @@ object Master extends App {
 
   val schedule = new Scheduler()
 
-  val count = args(1).toInt
-  println(s"$count x i * 5 = ")
+  val size = args(1)
+  val a = Matrix(s"./data/${size}a.csv")
+  val b = Matrix(s"./data/${size}b.csv")
+  val c = Matrix(s"./data/${size}c.csv")
+  println(s"$size: a * b = ")
   println("wait for it...")
 
-  val all = for {i <- 0 to count} yield schedule(parse(s"$i * 5"))
+  val f = remote(db, schedule, a, b)
 
-  val r = Await.result(Future.sequence(all), Duration("100s"))
-  Thread.currentThread()
-  println(r)
+  val r = Await.result(f, Duration("100s"))
+  println(r == c)
 }
