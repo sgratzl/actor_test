@@ -24,6 +24,8 @@ case class Matrix(values: IndexedSeq[IndexedSeq[Int]]) extends IndexedSeq[Indexe
     }
     Matrix(values)
   }
+
+  override def toString(): String = values.map(_.map("%5d".format(_)).mkString(" ")).mkString("\t")
 }
 
 object Matrix {

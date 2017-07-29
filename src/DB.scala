@@ -12,26 +12,49 @@ class DB(val host: String = "db") {
   Class.forName(driver).newInstance()
 
   private val conn = ThreadLocal.withInitial(new Supplier[Connection]() {
-    override def get(): Connection = DriverManager.getConnection(s"jdbc:derby://$host:1527/matrixStore;create=true", null)
+    override def get(): Connection = {
+      val c = DriverManager.getConnection(s"jdbc:derby://$host:1527/matrixStore;create=true", null)
+      c.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE)
+      c
+    }
+
   })
-  private val cellQuery = ThreadLocal.withInitial(new Supplier[PreparedStatement]() {
-    override def get() = conn.get().prepareStatement("SELECT value from CELL WHERE uid = ? i = ? AND j = ?")
-  })
-  private val rowQuery = ThreadLocal.withInitial(new Supplier[PreparedStatement]() {
-    override def get() = conn.get().prepareStatement("SELECT value from CELL WHERE uid = ? i = ? ORDER BY j")
-  })
-  private val colQuery = ThreadLocal.withInitial(new Supplier[PreparedStatement]() {
-    override def get() = conn.get().prepareStatement("SELECT value from CELL WHERE uid = ? AND j = ? ORDER BY i")
-  })
-  private val matrixQuery = ThreadLocal.withInitial(new Supplier[PreparedStatement]() {
-    override def get() = conn.get().prepareStatement("SELECT value from CELL WHERE uid = ? AND i >= ? AND i < ? AND j >= ? AND j < ? ORDER BY i, j")
-  })
-  private val insertQuery = ThreadLocal.withInitial(new Supplier[PreparedStatement]() {
-    override def get() = conn.get().prepareStatement("INSERT INTO CELL VALUES(?, ?, ?, ?)")
-  })
-  private val addQuery = ThreadLocal.withInitial(new Supplier[PreparedStatement]() {
-    override def get() = conn.get().prepareStatement("UPDATE TABLE CELL SET value = ? WHERE uid = ? AND i = ? AND j = ?")
-  })
+  private val cellQuery = () => {
+    val s = conn.get().prepareStatement("SELECT value from CELL WHERE uid = ? AND i = ? AND j = ?")
+    s.closeOnCompletion()
+    s
+  }
+  private val rowQuery = () => {
+    val s = conn.get().prepareStatement("SELECT value from CELL WHERE uid = ? AND i = ? ORDER BY j")
+    s.closeOnCompletion()
+    s
+  }
+  private val colQuery = () => {
+    val s = conn.get().prepareStatement("SELECT value from CELL WHERE uid = ? AND j = ? ORDER BY i")
+    s.closeOnCompletion()
+    s
+  }
+  private val matrixQuery = () => {
+    val s = conn.get().prepareStatement("SELECT value from CELL WHERE uid = ? AND i >= ? AND i < ? AND j >= ? AND j < ? ORDER BY i, j")
+    s.closeOnCompletion()
+    s
+  }
+  private val matrixFullQuery = () => {
+    val s = conn.get().prepareStatement("SELECT value from CELL WHERE uid = ? ORDER BY i, j")
+    s.closeOnCompletion()
+    s
+  }
+
+  private val insertQuery = () => {
+    val s = conn.get().prepareStatement("INSERT INTO CELL VALUES(?, ?, ?, ?)")
+    s.closeOnCompletion()
+    s
+  }
+  private val addQuery = () => {
+    val s = conn.get().prepareStatement("UPDATE CELL SET value = value + ? WHERE uid = ? AND i = ? AND j = ?")
+    s.closeOnCompletion()
+    s
+  }
 
 
   private def use[R <: AutoCloseable, T](resource: R)(code: R => T): T =
@@ -47,32 +70,40 @@ class DB(val host: String = "db") {
   }.toStream
 
   def getCell(uid: Int, i: Int, j: Int): Int = {
-    val p = cellQuery.get()
+    val p = cellQuery()
     p.setInt(1, uid)
     p.setInt(2, i)
     p.setInt(3, j)
-
-    p.executeQuery().getInt(1)
+    val r = p.executeQuery()
+    r.next()
+    r.getInt(1)
   }
 
-  def getRow(uid: Int, i: Int): Array[Int] = {
-    val p = rowQuery.get()
-    p.setInt(1, uid)
-    p.setInt(2, i)
+  def addCell(uid: Int, i: Int, j: Int, v: Int): Int = {
+    val p = addQuery()
+    p.setInt(2, uid)
+    p.setInt(3, i)
+    p.setInt(4, j)
+    p.setInt(1, v)
 
-    iterate(p.executeQuery()).map(_.getInt(1)).toArray
+    p.executeUpdate()
   }
 
-  def getCol(uid: Int, j: Int): Array[Int] = {
-    val p = colQuery.get()
+  def getMatrix(uid: Int, size: Int): Matrix = {
+    val p = matrixFullQuery()
     p.setInt(1, uid)
-    p.setInt(2, j)
 
-    iterate(p.executeQuery()).map(_.getInt(1)).toArray
+    val v = iterate(p.executeQuery())
+      .map(_.getInt(1))
+      .grouped(size)
+      .map(_.toIndexedSeq)
+      .toIndexedSeq
+    Matrix(v)
   }
 
   def getMatrix(uid: Int, iFrom: Int, iTo: Int, jFrom: Int, jTo: Int): Matrix = {
-    val p = matrixQuery.get()
+    println("full",Thread.currentThread(), uid, getMatrix(uid, 8))
+    val p = matrixQuery()
     p.setInt(1, uid)
     p.setInt(2, iFrom)
     p.setInt(3, iTo)
@@ -84,11 +115,13 @@ class DB(val host: String = "db") {
       .grouped(iTo - iFrom)
       .map(_.toIndexedSeq)
       .toIndexedSeq
-    Matrix(v)
+    val r = Matrix(v)
+    println("get ",Thread.currentThread(),uid, full(iFrom, iTo, jFrom, jTo, r, 8))
+    r
   }
 
   def setMatrix(uid: Int, iFrom: Int, iTo: Int, jFrom: Int, jTo: Int, m: Matrix): Int = {
-    val p = insertQuery.get()
+    val p = insertQuery()
     p.setInt(1, uid)
     m.zipWithIndex.foreach({ case (r, i) =>
       p.setInt(2, i + iFrom)
@@ -98,11 +131,13 @@ class DB(val host: String = "db") {
           p.addBatch()
       })
     })
-    p.executeBatch().sum
+    val r = p.executeBatch().sum
+    println("Done")
+    r
   }
 
   def init(uid: Int, is: Int, js: Int): Int = {
-    val p = insertQuery.get()
+    val p = insertQuery()
     p.setInt(1, uid)
     p.setInt(4, 0)
     for(i <- 0 until is; j <- 0 until js) {
@@ -113,52 +148,39 @@ class DB(val host: String = "db") {
     p.executeBatch().sum
   }
 
+  def full(iFrom: Int, iTo: Int, jFrom: Int, jTo: Int, m: Matrix, s: Int): Matrix = {
+    val r = Matrix.empty(s, s)
+    for(i <- iFrom until iTo; j <- jFrom until jTo) {
+      r(i)(j) = m(i - iFrom)(j - jFrom)
+    }
+    Matrix(r)
+  }
 
   def addMatrix(uid: Int, iFrom: Int, iTo: Int, jFrom: Int, jTo: Int, m: Matrix): Int = {
-    val p = addQuery.get()
-    p.setInt(1, uid)
+    //println("before",Thread.currentThread(), uid, getMatrix(uid, 0, 4, 0, 4))
+    println("add   ",Thread.currentThread(),uid, full(iFrom, iTo, jFrom, jTo, m, 8))
+    val p = addQuery()
+    p.setInt(2, uid)
     m.zipWithIndex.foreach({ case (r, i) =>
       p.setInt(3, i + iFrom)
       r.zipWithIndex.foreach({ case (v, j) =>
         p.setInt(4, j + jFrom)
-        p.setInt(2, v)
+        p.setInt(1, v)
         p.addBatch()
       })
     })
-    p.executeBatch().sum
+    val r = p.executeBatch().sum
+    //println("after",Thread.currentThread(),uid, getMatrix(uid, 0, 4, 0, 4))
+    r
   }
 
   def setCell(uid: Int, i: Int, j: Int, v: Int): Boolean = {
-    val p = insertQuery.get()
+    val p = insertQuery()
     p.setInt(1, uid)
     p.setInt(2, i)
     p.setInt(3, j)
     p.setInt(4, v)
     p.executeUpdate() != 0
-  }
-
-  def setRow(uid: Int, i: Int, vs: Iterable[Int]): Int = {
-    val p = insertQuery.get()
-    p.setInt(1, uid)
-    p.setInt(2, i)
-    vs.zipWithIndex.foreach({ case (vi, j) =>
-      p.setInt(3, j)
-      p.setInt(4, vi)
-      p.addBatch()
-    })
-    p.executeBatch().sum
-  }
-
-  def setCol(uid: Int, j: Int, vs: Iterable[Int]): Int = {
-    val p = insertQuery.get()
-    p.setInt(1, uid)
-    p.setInt(3, j)
-    vs.zipWithIndex.foreach({ case (vi, i) =>
-      p.setInt(2, i)
-      p.setInt(4, vi)
-      p.addBatch()
-    })
-    p.executeBatch().sum
   }
 
   def save(uid: Int): Matrix = {
@@ -189,7 +211,7 @@ class DB(val host: String = "db") {
           return
       }
     }
-    val p = insertQuery.get()
+    val p = insertQuery()
     p.setInt(1, uid)
     for ((row, i) <- matrix.values.zipWithIndex; (cell, j) <- row.zipWithIndex) {
       p.setInt(2, i)
@@ -198,10 +220,12 @@ class DB(val host: String = "db") {
       p.addBatch()
     }
     p.executeBatch()
+    println("loaded", uid, matrix)
   }
 
   def delete(uid: Int): Boolean = {
     use(conn.get.createStatement()) { stmt =>
+      println("delete", uid)
       return stmt.execute(s"DELETE FROM CELL WHERE uid = $uid")
     }
   }

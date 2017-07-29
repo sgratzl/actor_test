@@ -22,49 +22,84 @@ package object multiply {
     db.delete(C)
 
     val load = Future.reduce(Array(Future(db.load(A, a)), Future(db.load(B, b), Future(db.init(C, N, N)))))((_,_)=>Unit)
-    load
-      .map((_) => MultiplyTask(A, 0, 0, B, 0, 0, C, 0, 0, N).apply(scheduler))
-      .map((_) => db.getMatrix(C, 0, N, 0, N))
-      .andThen { case r =>
-        db.delete(A)
-        db.delete(B)
-        db.delete(C)
-        r
-      }
+
+    for {
+      loaded <- load
+      task <- MultiplyTask(A, 0, 0, B, 0, 0, C, 0, 0, N)(db, scheduler)
+    } yield {
+      val r = db.getMatrix(C, 0, N, 0, N)
+      db.delete(A)
+      db.delete(B)
+      db.delete(C)
+      r
+    }
   }
 
 
   //https://stackoverflow.com/questions/5472744/fork-join-matrix-multiplication-in-java
 
-  val THRESHOLD = 64
+  val THRESHOLD = 1
   case class MultiplyTask(A: Int, aRow: Int, aCol: Int, B: Int, bRow: Int, bCol: Int, C: Int, cCol: Int, cRow: Int, size: Int) {
-    def apply(schedule: Scheduler): Future[Any] = {
+    /**
+      * Multiply matrices AxB by dividing into quadrants, using algorithm:
+      * <pre>
+      *      A      x      B
+      *
+      *  A11 | A12     B11 | B12     A11*B11 | A11*B12     A12*B21 | A12*B22
+      * |----+----| x |----+----| = |--------+--------| + |---------+-------|
+      *  A21 | A22     B21 | B22     A21*B11 | A21*B12     A22*B21 | A22*B22
+      * </pre>
+      */
+    def apply(db: DB, schedule: Scheduler): Future[Any] = {
+      if (size == 1) {
+        Future(db.addCell(C, cRow, cCol, db.getCell(A, aRow, aCol) * db.getCell(B, bRow, bCol)))
+      } else
       if (size <= THRESHOLD) {
-        schedule(this)
+        compute(db, this)
       } else {
         val h = size / 2
-        val r1 = MultiplyTask(A, aRow, aCol, // A11
+        val c11_1 = MultiplyTask(
+          A, aRow, aCol, // A11
           B, bRow, bCol, // B11
           C, cRow, cCol, // C11
           h)
-        val r2 = MultiplyTask(A, aRow, aCol + h, // A12
+        val c11_2 = MultiplyTask(
+          A, aRow, aCol + h, // A12
           B, bRow + h, bCol, // B21
-          C, cRow, cCol, h)
-        val r3 = MultiplyTask(A, aRow, aCol, B, bRow, bCol + h, // B12
+          C, cRow, cCol,     // C11
+          h)
+        val c12_1 = MultiplyTask(
+          A, aRow, aCol, // A11
+          B, bRow, bCol + h, // B12
           C, cRow, cCol + h, // C12
           h)
-        val r4 = MultiplyTask(A, aRow, aCol + h, B, bRow + h, bCol + h, // B22
-          C, cRow, cCol + h, h)
-        val r5 = MultiplyTask(A, aRow + h, aCol, // A21
-          B, bRow, bCol, C, cRow + h, cCol, // C21
+        val c12_2 = MultiplyTask(
+          A, aRow, aCol + h,     // A12
+          B, bRow + h, bCol + h, // B22
+          C, cRow, cCol + h,     // C12
           h)
-        val r6 = MultiplyTask(A, aRow + h, aCol + h, // A22
-          B, bRow + h, bCol, C, cRow + h, cCol, h)
-        val r7 = MultiplyTask(A, aRow + h, aCol, B, bRow, bCol + h, C, cRow + h, cCol + h, // C22
+        val c21_1 = MultiplyTask(
+          A, aRow + h, aCol, // A21
+          B, bRow, bCol,     // B11
+          C, cRow + h, cCol, // C21
           h)
-        val r8 = MultiplyTask(A, aRow + h, aCol + h, B, bRow + h, bCol + h, C, cRow + h, cCol + h, h)
+        val c21_2 = MultiplyTask(
+          A, aRow + h, aCol + h,  // A22
+          B, bRow + h, bCol,     // B21
+          C, cRow + h, cCol,     // C21
+          h)
+        val c22_1 = MultiplyTask(
+          A, aRow + h, aCol,     // A21
+          B, bRow, bCol + h,     // B12
+          C, cRow + h, cCol + h, // C22
+          h)
+        val c22_2 = MultiplyTask(
+          A, aRow + h, aCol + h, // A22
+          B, bRow + h, bCol + h, // B22
+          C, cRow + h, cCol + h, // C22
+          h)
 
-        val forks = Array(r1, r2, r3, r4, r6, r6, r7, r8).map(_(schedule))
+        val forks = Array(c11_1, c11_2, c12_1, c12_2, c21_1, c21_2, c22_1, c22_2).map(_(db, schedule))
         Future.reduce(forks)((_,_)=>Unit)
       }
     }
