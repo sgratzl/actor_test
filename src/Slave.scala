@@ -31,7 +31,7 @@ object Slave extends App {
 
   breakable {
     while (true) {
-      println(s"${client.getLocalAddress}s ${Thread.currentThread()} wait for tasks")
+      //println(s"${client.getLocalAddress}s ${Thread.currentThread()} wait for tasks")
       byteBuffer.rewind()
       try {
         val num = client.read(byteBuffer).get()
