@@ -33,18 +33,22 @@ package object tasks {
       task match {
         case Plus =>
           Future {
+            Thread.sleep(100 * b)
             TaskResult(uid, a + b)
           }
         case Minus =>
           Future {
+            Thread.sleep(200 * b)
             TaskResult(uid, a - b)
           }
         case Times =>
           Future {
+            Thread.sleep(300 * b)
             TaskResult(uid, a * b)
           }
         case Divide =>
           Future {
+            Thread.sleep(400 * b)
             TaskResult(uid, a / b)
           }
       }
