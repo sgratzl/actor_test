@@ -102,7 +102,7 @@ class DB(val host: String = "db") {
   }
 
   def getMatrix(uid: Int, iFrom: Int, iTo: Int, jFrom: Int, jTo: Int): Matrix = {
-    println("full",Thread.currentThread(), uid, getMatrix(uid, 8))
+    //println("full",Thread.currentThread(), uid, getMatrix(uid, 8))
     val p = matrixQuery()
     p.setInt(1, uid)
     p.setInt(2, iFrom)
@@ -116,7 +116,7 @@ class DB(val host: String = "db") {
       .map(_.toIndexedSeq)
       .toIndexedSeq
     val r = Matrix(v)
-    println("get ",Thread.currentThread(),uid, full(iFrom, iTo, jFrom, jTo, r, 8))
+    //println("get ",Thread.currentThread(),uid, full(iFrom, iTo, jFrom, jTo, r, 8))
     r
   }
 
@@ -158,7 +158,7 @@ class DB(val host: String = "db") {
 
   def addMatrix(uid: Int, iFrom: Int, iTo: Int, jFrom: Int, jTo: Int, m: Matrix): Int = {
     //println("before",Thread.currentThread(), uid, getMatrix(uid, 0, 4, 0, 4))
-    println("add   ",Thread.currentThread(),uid, full(iFrom, iTo, jFrom, jTo, m, 8))
+    //println("add   ",Thread.currentThread(),uid, full(iFrom, iTo, jFrom, jTo, m, 8))
     val p = addQuery()
     p.setInt(2, uid)
     m.zipWithIndex.foreach({ case (r, i) =>
