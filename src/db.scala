@@ -6,13 +6,13 @@ import matrix.Matrix
 import scala.collection.mutable
 
 
-package object db {
+class DB(val host: String = "//db:1527/") {
   private val driver = "org.apache.derby.jdbc.EmbeddedDriver"
 
   Class.forName(driver).newInstance()
 
   private val conn = ThreadLocal.withInitial(new Supplier[Connection]() {
-    override def get(): Connection = DriverManager.getConnection("jdbc:derby:derbyDB;create=true", null)
+    override def get(): Connection = DriverManager.getConnection(s"jdbc:derby:${host}matrixStore;create=true", null)
   })
   private val cellQuery = ThreadLocal.withInitial(new Supplier[PreparedStatement]() {
     override def get() = conn.get().prepareStatement("SELECT value from CELL WHERE key = ? i = ? AND j = ?")
