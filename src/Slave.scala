@@ -7,14 +7,33 @@ import java.nio.channels.AsynchronousSocketChannel
 import java.util.concurrent.locks.{Lock, ReentrantLock}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionException
 import scala.util.control.Breaks.{break, breakable}
 
 object Slave extends App {
-  val db = new DB()
-  val hostname = args(0)
+  val hostname = if (args.length > 0) args(0) else "master"
+  val db = new DB(if (args.length > 1) args(1) else "db")
+
   val client = AsynchronousSocketChannel.open
   println(s"${client.getLocalAddress}s start")
-  client.connect(new InetSocketAddress(hostname, 9000)).get()
+
+  var tries = 0
+  breakable {
+    for( i <- 0 until 10) {
+      try {
+        client.connect(new InetSocketAddress(hostname, 9000)).get()
+        //got it
+        break()
+      } catch {
+        case e:ExecutionException => println(s"try $i can not find master")
+      }
+      // sleep for 2 seconds
+      Thread.sleep(2000)
+    }
+    //out of tries
+    println("no master found after 10 tries")
+    System.exit(1)
+  }
   println(s"${client.getLocalAddress}s ${Thread.currentThread()} connected to master: ${client.getRemoteAddress}")
 
   val byteBuffer = Task.newResultByteBuffer
