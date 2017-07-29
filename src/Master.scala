@@ -23,6 +23,6 @@ object Master extends App {
 
   val f = remote(db, schedule, a, b)
 
-  val r = Await.result(f, Duration("100s"))
+  val r = Await.result(f, Duration("200s"))
   println(r == c)
 }

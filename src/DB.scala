@@ -14,7 +14,7 @@ class DB(val host: String = "db") {
   private val conn = ThreadLocal.withInitial(new Supplier[Connection]() {
     override def get(): Connection = {
       val c = DriverManager.getConnection(s"jdbc:derby://$host:1527/matrixStore;create=true", null)
-      c.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE)
+      //c.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE)
       c
     }
 
@@ -54,6 +54,17 @@ class DB(val host: String = "db") {
     val s = conn.get().prepareStatement("UPDATE CELL SET value = value + ? WHERE uid = ? AND i = ? AND j = ?")
     s.closeOnCompletion()
     s
+  }
+
+  use(conn.get.createStatement()) { stmt =>
+    try {
+      stmt.execute("CREATE TABLE CELL (uid INT NOT NULL, i INT NOT NULL, j INT NOT NULL, value INT NOT NULL, CONSTRAINT PK_CELL PRIMARY KEY (uid, i, j))")
+    } catch {
+      case e: SQLTransactionRollbackException if e.getMessage.startsWith("Table/View 'CELL' already exists in Schema 'APP'") => println("table already exists", e)
+      case e: Exception =>
+        println("unknown error ", e)
+        e.printStackTrace()
+    }
   }
 
 
@@ -200,27 +211,22 @@ class DB(val host: String = "db") {
   }
 
   def load(uid: Int, matrix: Matrix): Unit = {
-    use(conn.get.createStatement()) { stmt =>
-      try {
-        stmt.execute("CREATE TABLE CELL (uid INT NOT NULL, i INT NOT NULL, j INT NOT NULL, value INT NOT NULL, CONSTRAINT PK_CELL PRIMARY KEY (uid, i, j))")
-      } catch {
-        case e: SQLTransactionRollbackException if e.getMessage.startsWith("Table/View 'CELL' already exists in Schema 'APP'") => println("table already exists", e)
-        case e: Exception =>
-          println("unknown error ", e)
-          e.printStackTrace()
-          return
-      }
-    }
     val p = insertQuery()
     p.setInt(1, uid)
+    var b = 0
     for ((row, i) <- matrix.values.zipWithIndex; (cell, j) <- row.zipWithIndex) {
       p.setInt(2, i)
       p.setInt(3, j)
       p.setInt(4, cell)
       p.addBatch()
+      b += 1
+      if (b > 60000) {
+        p.executeBatch()
+        b = 0
+      }
     }
     p.executeBatch()
-    println("loaded", uid, matrix)
+    println("loaded", uid) //, matrix)
   }
 
   def delete(uid: Int): Boolean = {

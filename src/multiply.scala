@@ -38,7 +38,7 @@ package object multiply {
 
   //https://stackoverflow.com/questions/5472744/fork-join-matrix-multiplication-in-java
 
-  val THRESHOLD = 4
+  val THRESHOLD = 64
   case class MultiplyTask(A: Int, aRow: Int, aCol: Int, B: Int, bRow: Int, bCol: Int, C: Int, cRow: Int, cCol: Int, size: Int) {
     /**
       * Multiply matrices AxB by dividing into quadrants, using algorithm:
@@ -55,7 +55,7 @@ package object multiply {
       //  Future(db.addCell(C, cRow, cCol, db.getCell(A, aRow, aCol) * db.getCell(B, bRow, bCol)))
       //} else
       if (size <= THRESHOLD) {
-        compute(db, this)
+        schedule(this)
       } else {
         val h = size / 2
         val c11_1 = MultiplyTask(
