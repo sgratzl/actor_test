@@ -127,4 +127,10 @@ package object db {
     }
     p.executeBatch()
   }
+
+  def delete(key: Int): Boolean = {
+    use(conn.get.createStatement()) { stmt =>
+      return stmt.execute(s"DELETE FROM CELL WHERE key = $key")
+    }
+  }
 }
