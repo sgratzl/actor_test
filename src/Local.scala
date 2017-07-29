@@ -13,6 +13,6 @@ object Local extends App{
 
   println(s"${a} ${task} ${b} = ")
   println("wait for it...")
-  val r = Await.result(Task(TaskType.Plus, a, b).compute(), Duration("1000s"))
+  val r = Await.result(Task(0, TaskType.Plus, a, b).compute(), Duration("1000s"))
   println(r.c)
 }

@@ -15,7 +15,7 @@ object Master extends App {
   println(s"${a} ${task} ${b} = ")
   println("wait for it...")
 
-  val all = for {i <- 0 to 10000} yield schedule(TaskType.Plus, i, b)
+  val all = for {i <- 0 to 100} yield schedule(TaskType.Plus, i, b)
 
   val r = Await.result(Future.sequence(all), Duration("100s"))
   Thread.currentThread()

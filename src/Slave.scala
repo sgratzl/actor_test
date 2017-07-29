@@ -1,10 +1,9 @@
 import java.net.InetSocketAddress
-import java.nio.{BufferUnderflowException, ByteBuffer}
+import java.nio.ByteBuffer
 
 import scala.util.{Failure, Success}
 import tasks._
 import java.nio.channels.AsynchronousSocketChannel
-import java.util.concurrent.ExecutionException
 import java.util.concurrent.locks.{Lock, ReentrantLock}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -20,7 +19,7 @@ object Slave extends App {
 
   val lock = new ReentrantLock()
 
-  def write(arr: ByteBuffer) = {
+  def write(arr: ByteBuffer) {
     lock.lock();  //write sync
     try {
       client.write(arr).get()
@@ -35,12 +34,10 @@ object Slave extends App {
       byteBuffer.rewind()
       try {
         val num = client.read(byteBuffer).get()
-        println(num)
         if (num == 0) {
           break()
         }
         byteBuffer.flip()
-        println(byteBuffer.limit())
         val task = Task(byteBuffer)
         println(s"${client.getLocalAddress}s ${Thread.currentThread()} got task: $task")
 

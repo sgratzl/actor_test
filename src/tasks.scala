@@ -16,9 +16,10 @@ package object tasks {
 
   type TaskQueue = LinkedBlockingDeque[Task]
 
-  case class Task(task: TaskType.Value, a: Int, b: Int, promise: Promise[Int]) {
+  case class Task(uid: Int, task: TaskType.Value, a: Int, b: Int, promise: Promise[Int]) {
     def byteBuffer: ByteBuffer = {
-      val buffer = ByteBuffer.allocate(4 + 4 + 4)
+      val buffer = ByteBuffer.allocate(4 + 4 + 4 + 4)
+      buffer.putInt(uid)
       buffer.putInt(task.id)
       buffer.putInt(a)
       buffer.putInt(b)
@@ -32,47 +33,47 @@ package object tasks {
       task match {
         case Plus =>
           Future {
-            TaskResult(task, a + b)
+            TaskResult(uid, a + b)
           }
         case Minus =>
           Future {
-            TaskResult(task, a - b)
+            TaskResult(uid, a - b)
           }
         case Times =>
           Future {
-            TaskResult(task, a * b)
+            TaskResult(uid, a * b)
           }
         case Divide =>
           Future {
-            TaskResult(task, a / b)
+            TaskResult(uid, a / b)
           }
       }
     }
   }
 
   object Task {
-    def newResultByteBuffer: ByteBuffer = ByteBuffer.allocate(4 + 4 + 4)
+    def newResultByteBuffer: ByteBuffer = ByteBuffer.allocate(4 + 4 + 4 + 4)
 
     def apply(buffer: ByteBuffer): Task = {
-      Task(TaskType(buffer.getInt), buffer.getInt, buffer.getInt, null)
+      Task(buffer.getInt, TaskType(buffer.getInt), buffer.getInt, buffer.getInt, null)
     }
-    def apply(task: TaskTypeValue, a: Int, b: Int): Task = Task(task, a, b, null.asInstanceOf[Promise[Int]])
+    def apply(uid: Int, task: TaskTypeValue, a: Int, b: Int): Task = Task(uid, task, a, b, null.asInstanceOf[Promise[Int]])
   }
 
-  case class TaskResult(task: TaskTypeValue, c: Int) {
+  case class TaskResult(uid: Int, c: Int) {
     def byteBuffer: ByteBuffer = {
       val buffer = ByteBuffer.allocate(4 + 4)
-      buffer.putInt(task.id)
+      buffer.putInt(uid)
       buffer.putInt(c)
       buffer.flip()
       buffer
     }
   }
 
-  case class InvalidTaskResult(taskId: Int) {
+  case class InvalidTaskResult(uid: Int) {
     def byteBuffer: ByteBuffer = {
       val buffer = ByteBuffer.allocate(4 + 4)
-      buffer.putInt(-taskId) //negative = error
+      buffer.putInt(-uid) //negative = error
       buffer.putInt(0)
     }
   }
@@ -81,7 +82,7 @@ package object tasks {
     def newResultByteBuffer: ByteBuffer = ByteBuffer.allocate(4 + 4)
 
     def apply(buffer: ByteBuffer): TaskResult = {
-      TaskResult(TaskType(buffer.getInt), buffer.getInt)
+      TaskResult(buffer.getInt, buffer.getInt)
     }
   }
 }
