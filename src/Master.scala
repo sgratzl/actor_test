@@ -1,3 +1,4 @@
+import matrix.Matrix
 import tasks.{Task, TaskType}
 
 import scala.concurrent.{Await, Future}
@@ -6,6 +7,10 @@ import scala.concurrent.duration.Duration
 
 
 object Master extends App {
+  val db = new DB("localhost")
+  db.delete(10)
+  db.load(10, Matrix("./data/10a.csv"))
+
   val schedule = new Scheduler()
 
   val count = args(0).toInt

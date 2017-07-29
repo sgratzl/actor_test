@@ -10,6 +10,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.control.Breaks.{break, breakable}
 
 object Slave extends App {
+  val db = new DB()
   val hostname = args(0)
   val client = AsynchronousSocketChannel.open
   println(s"${client.getLocalAddress}s start")
@@ -49,6 +50,10 @@ object Slave extends App {
           case Failure(TaskException(r)) =>
             println(s"${client.getLocalAddress}s ${Thread.currentThread()} failure: $r")
             write(r.byteBuffer)
+          case Failure(e) =>
+            println(s"${client.getLocalAddress}s ${Thread.currentThread()} unknown error: $e")
+            e.printStackTrace()
+            write(InvalidTaskResult(task.uid).byteBuffer)
         }
       } catch {
         case e:Exception =>
