@@ -15,4 +15,4 @@ services:
     volumes:
       - '.:/ws'
     working_dir: /ws
-    command: 'java -cp ".:lib/*:out/production/distributed_matrix" Master ./data 2048'
+    command: 'java -cp ".:lib/*:out/production/distributed_matrix" Master ./data 1024'

@@ -1,8 +1,10 @@
 import java.io._
 import java.nio.ByteBuffer
-import java.nio.channels.{Channels, FileChannel}
+import java.nio.channels.{Channels, FileChannel, FileLock}
 
 import matrix.Matrix
+
+import scala.util.Random
 
 class FS(val baseDir: String = "./data") {
   val base = new File(baseDir)
@@ -122,6 +124,23 @@ class FS(val baseDir: String = "./data") {
     Matrix(r)
   }
 
+  private def lock(channel: FileChannel): FileLock = {
+    //windows detects deadlocks on files however, not considering multi threading
+    for( i <- 1 until 20) {
+      try {
+        return channel.lock()
+      } catch {
+        case e:IOException if e.getMessage.startsWith("Resource deadlock would occur") =>
+          //ok wait a random time from 0 to 4s
+          val w = Random.nextInt(4000)
+          println("deadlock detected wait", w)
+          Thread.sleep(w)
+        case e:Exception => throw e //unknown error
+      }
+    }
+    throw new IOException("cannot aquire lock after 20 random tries")
+  }
+
   def addMatrix(path: String, rowStart: Int, rowEnd: Int, colStart: Int, colEnd: Int, m: Array[Array[Double]]) {
     val rowSize = rowEnd - rowStart
     val colSize = colEnd - colStart
@@ -135,39 +154,43 @@ class FS(val baseDir: String = "./data") {
       assume(f.exists() && f.isFile)
       use(new RandomAccessFile(f, "rw").getChannel) { channel =>
         //ensure just one process at a time
-        use(channel.lock()) { _ =>
-          val out = new DataOutputStream(Channels.newOutputStream(channel))
-          if (channel.size() == 0) {
-            //first time
-            var i = 0
-            while (i < rowSize) {
-              val r = m(i)
-              var j = 0
-              while (j < colSize) {
-                out.writeDouble(r(j))
-                j += 1
-              }
-              i += 1
+        //println(Thread.currentThread(), "lock", name)
+        val lock: FileLock = this.lock(channel)
+        //println(Thread.currentThread(), "locked", name)
+        val out = new DataOutputStream(Channels.newOutputStream(channel))
+        if (channel.size() == 0) {
+          //first time
+          var i = 0
+          while (i < rowSize) {
+            val r = m(i)
+            var j = 0
+            while (j < colSize) {
+              out.writeDouble(r(j))
+              j += 1
             }
-          } else {
-            val buffer = ByteBuffer.allocate(rowSize * colSize * byteSize)
-            channel.read(buffer, 0)
-            buffer.rewind()
-            val ints = buffer.asDoubleBuffer()
-
-            var i = 0
-            while (i < rowSize) {
-              val r = m(i)
-              var j = 0
-              while (j < colSize) {
-                out.writeDouble(r(j) + ints.get())
-                j += 1
-              }
-              i += 1
-            }
+            i += 1
           }
-          channel.position(0) //reset
+        } else {
+          val buffer = ByteBuffer.allocate(rowSize * colSize * byteSize)
+          channel.read(buffer, 0)
+          buffer.rewind()
+          val ints = buffer.asDoubleBuffer()
+
+          var i = 0
+          while (i < rowSize) {
+            val r = m(i)
+            var j = 0
+            while (j < colSize) {
+              out.writeDouble(r(j) + ints.get())
+              j += 1
+            }
+            i += 1
+          }
         }
+        channel.position(0) //reset
+        //println(Thread.currentThread(), "release", name)
+        lock.release()
+
       }
     })
   }
