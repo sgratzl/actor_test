@@ -1,6 +1,6 @@
 import java.io._
 import java.nio.ByteBuffer
-import java.nio.channels.{Channels, FileChannel, FileLock}
+import java.nio.channels.{Channel, Channels, FileChannel, FileLock}
 
 import matrix.Matrix
 
@@ -24,6 +24,12 @@ class FS(val baseDir: String = "./data") {
     val binary = new File(parent, s"$baseName.bin")
     val relativeBinaryName = binary.getAbsolutePath.substring(parent.getAbsolutePath.length + 1)
     (binary, relativeBinaryName)
+  }
+
+  def toTextFile(path: String, m: Matrix) {
+    use(new PrintWriter(new FileWriter(new File(base, path))))(out => {
+      m.foreach((row) => out.println(row.map((d) => "%d".format(d.toLong)).mkString("\t")))
+    })
   }
 
   def toBinaryFile(path: String): String = {
@@ -124,13 +130,18 @@ class FS(val baseDir: String = "./data") {
     Matrix(r)
   }
 
-  private def lock(channel: FileChannel): FileLock = {
+  private def lock(path: File): (FileChannel, FileLock) = {
     //windows detects deadlocks on files however, not considering multi threading
     for( i <- 1 until 20) {
+      val file = new RandomAccessFile(path, "rw")
       try {
-        return channel.lock()
+        val channel = file.getChannel
+        channel.force(false)
+        println(path.getName, channel.hashCode())
+        return (channel, channel.lock())
       } catch {
         case e:IOException if e.getMessage.startsWith("Resource deadlock would occur") =>
+          file.close()
           //ok wait a random time from 0 to 4s
           val w = Random.nextInt(4000)
           println("deadlock detected wait", w)
@@ -152,12 +163,18 @@ class FS(val baseDir: String = "./data") {
       f.getParentFile.mkdirs()
       f.createNewFile()
       assume(f.exists() && f.isFile)
-      use(new RandomAccessFile(f, "rw").getChannel) { channel =>
+
+
+      var channel: FileChannel = null
+      var lock: FileLock = null
+      try {
+        val r = this.lock(f)
+        channel = r._1
+        lock = r._2
         //ensure just one process at a time
         //println(Thread.currentThread(), "lock", name)
-        val lock: FileLock = this.lock(channel)
         //println(Thread.currentThread(), "locked", name)
-        val out = new DataOutputStream(Channels.newOutputStream(channel))
+        val out = new DataOutputStream(new BufferedOutputStream(Channels.newOutputStream(channel)))
         if (channel.size() == 0) {
           //first time
           var i = 0
@@ -187,10 +204,14 @@ class FS(val baseDir: String = "./data") {
             i += 1
           }
         }
+        out.flush()
         channel.position(0) //reset
+      } finally {
         //println(Thread.currentThread(), "release", name)
         lock.release()
-
+        if (channel.isOpen) {
+          channel.close()
+        }
       }
     })
   }

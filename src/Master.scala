@@ -32,6 +32,7 @@ object Master extends App {
   schedule.shuffleAndInsertDelayed()
 
   val r = Await.result(f, Duration("200s"))
+  db.toTextFile(s"${size}ab.csv", r)
   print("done comparing result: ok? ")
   println(db.compare(c, r))
 }
