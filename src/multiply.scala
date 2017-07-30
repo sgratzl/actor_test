@@ -6,7 +6,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 package object multiply {
   //http://www.norstad.org/matrix-multiply/
-  val THRESHOLD = 128
+  val THRESHOLD = 256
 
   def local(a: Matrix, b: Matrix): Future[Matrix]  = {
     Future {

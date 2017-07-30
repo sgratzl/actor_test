@@ -157,13 +157,19 @@ class FS(val baseDir: String = "./data") {
           assume(right.exists() && right.isFile)
           assume(right.length() == colSize * rowSize * byteSize, s"$rightPath ${right.length()} $colSize $rowSize ${colSize * rowSize * byteSize}")
           use(fin(left), fin(right)) { (leftIn, rightIn) =>
-            for (_ <- 1 to rowSize) {
-              for (_ <- 1 to colSize) {
+            var i = rowSize
+            while (i > 0) {
+              var j = colSize
+              while (j > 0) {
                 out.writeDouble(leftIn.readDouble())
+                j -= 1
               }
-              for (_ <- 1 to colSize) {
+              j = colSize
+              while (j > 0) {
                 out.writeDouble(rightIn.readDouble())
+                j -= 1
               }
+              i -= 1
             }
             out.flush()
           }
@@ -192,10 +198,12 @@ class FS(val baseDir: String = "./data") {
       out =>
         use(fin(a), fin(b)) { (aIn, bIn) =>
           assume((0 until (size._1 * size._2)).length == (size._1 * size._2))
-          for(i <- 0 until (size._1 * size._2)) {
+          var i = size._1 * size._2
+          while (i > 0) {
             val va = aIn.readDouble()
             val vb = bIn.readDouble()
             out.writeDouble(va + vb)
+            i -= 1
           }
         }
         out.flush()

@@ -2,7 +2,7 @@ import java.io.{ObjectInputStream, ObjectOutputStream}
 import java.net.InetSocketAddress
 
 import scala.util.{Failure, Success}
-import java.nio.channels.{AsynchronousSocketChannel, Channels}
+import java.nio.channels.{AsynchronousSocketChannel, Channels, UnresolvedAddressException}
 import java.util.concurrent.locks.{Lock, ReentrantLock}
 
 import tasks.TaskCode
@@ -26,6 +26,7 @@ object Slave extends App {
         return client
       } catch {
         case e:ExecutionException => println(s"try $i can not find master")
+        case e:UnresolvedAddressException => println(s"try $i can not find master")
       }
       // sleep for 2 seconds
       Thread.sleep(2000)
@@ -68,7 +69,7 @@ object Slave extends App {
 
         task(db) onComplete {
           case Success(r) =>
-            println(s"${client.getLocalAddress}s ${Thread.currentThread()} success: $taskId $r")
+            //println(s"${client.getLocalAddress}s ${Thread.currentThread()} success: $taskId $r")
             write(taskId, r.asInstanceOf[AnyRef])
           case Failure(e) =>
             println(s"${client.getLocalAddress}s ${Thread.currentThread()} failure: $taskId $e")
