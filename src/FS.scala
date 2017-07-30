@@ -104,11 +104,11 @@ class FS(val baseDir: String = "./data") {
   private def collectFile(f: File, size: (Int, Int)): Matrix = {
     assume(f.exists() && f.isDirectory)
     val r = Matrix.empty(size._1, size._2)
-    for (sub <- f.listFiles()) {
+    for (sub <- f.listFiles().sortBy(_.getName)) {
       val indices = sub.getName.split("[;-]").map(_.toInt).toIndexedSeq
       val rowStart = indices(0)
-      val rowSize = indices(1)
-      val colStart = indices(2)
+      val colStart = indices(1)
+      val rowSize = indices(2)
       val colSize = indices(3)
 
       val subM = readFile(sub, (rowSize, colSize))
@@ -123,7 +123,7 @@ class FS(val baseDir: String = "./data") {
   def addMatrix(path: String, rowStart: Int, rowEnd: Int, colStart: Int, colEnd: Int, m: Matrix) {
     val rowSize = rowEnd - rowStart
     val colSize = colEnd - colStart
-    val name = Symbol(s"$path/$rowStart-$rowSize;$colStart-$colSize")
+    val name = Symbol(s"$path/%05d-%05d;%05d;%05d".format(rowStart, colStart, rowSize, colSize))
 
     //ensure just one thread at a time
     name.synchronized({
