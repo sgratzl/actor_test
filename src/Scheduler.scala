@@ -104,7 +104,7 @@ class Scheduler(val port: Int = 9000, val paralleTasksPerSlave: Int = 5) {
     val t = Task(counter.incrementAndGet(), task, p.asInstanceOf[Promise[AnyRef]])
 
     println(s"schedule ${Thread.currentThread()} $t")
-    tasks.add(t)
+    tasks.addFirst(t)
 
     p.future
   }

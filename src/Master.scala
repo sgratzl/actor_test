@@ -29,8 +29,8 @@ object Master extends App {
 
   println(s"$size: a * b = ")
   println("wait for it...")
-  //val f = remote(db, schedule.asInstanceOf[(TaskCode[String])=>Future[String]], a, b, ab, size)
-  val f = remote(db, (t) => t(db), a, b, ab, size)
+  val f = remote(db, (t) => schedule(t), a, b, ab, size)
+  //val f = remote(db, (t) => t(db), a, b, ab, size)
   schedule.shuffleAndInsertDelayed()
 
   val r = Await.result(f, Duration("200s"))
