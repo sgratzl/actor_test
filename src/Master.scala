@@ -1,6 +1,7 @@
 import matrix.Matrix
-
 import multiply._
+import tasks.TaskCode
+
 import scala.concurrent.{Await, Future}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
@@ -24,15 +25,16 @@ object Master extends App {
   val b = db.toBinaryFile(s"${size}b.csv")
   val c = db.toBinaryFile(s"${size}c.csv")
 
-  val ab = db.emptyBinary(s"${size}ab.csv")
+  val ab = s"${size}ab"
 
   println(s"$size: a * b = ")
   println("wait for it...")
-  val f = remote(db, schedule, a, b, ab, size)
+  //val f = remote(db, schedule.asInstanceOf[(TaskCode[String])=>Future[String]], a, b, ab, size)
+  val f = remote(db, (t) => t(db), a, b, ab, size)
   schedule.shuffleAndInsertDelayed()
 
   val r = Await.result(f, Duration("200s"))
-  db.toTextFile(s"${size}ab.csv", r)
+  //db.toTextFile(s"${size}ab.csv", r)
   print("done comparing result: ok? ")
   println(db.compare(c, r))
 }

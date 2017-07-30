@@ -1,5 +1,6 @@
 import java.util.concurrent.LinkedBlockingDeque
-import scala.concurrent.Promise
+
+import scala.concurrent.{Future, Promise}
 
 
 package object tasks {
@@ -9,5 +10,9 @@ package object tasks {
 
   object Task {
     def apply(uid: Int, args: AnyRef): Task = Task(uid, args, null.asInstanceOf[Promise[AnyRef]])
+  }
+
+  trait TaskCode[T] {
+    def apply(db: FS): Future[T]
   }
 }

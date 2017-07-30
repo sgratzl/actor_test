@@ -1,10 +1,11 @@
 import java.io.{ObjectInputStream, ObjectOutputStream}
 import java.net.InetSocketAddress
+
 import scala.util.{Failure, Success}
-//import calc.{compute, Equation}
-import multiply.{compute, MultiplyTask}
 import java.nio.channels.{AsynchronousSocketChannel, Channels}
 import java.util.concurrent.locks.{Lock, ReentrantLock}
+
+import tasks.TaskCode
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.ExecutionException
@@ -62,10 +63,10 @@ object Slave extends App {
       //println(s"${client.getLocalAddress}s ${Thread.currentThread()} wait for tasks")
       try {
         val taskId = in.readInt()
-        val args = in.readObject()
+        val task = in.readObject().asInstanceOf[TaskCode[Any]]
         //println(s"${client.getLocalAddress}s ${Thread.currentThread()} got task: $taskId $args")
 
-        compute(db, args.asInstanceOf[MultiplyTask]) onComplete {
+        task(db) onComplete {
           case Success(r) =>
             println(s"${client.getLocalAddress}s ${Thread.currentThread()} success: $taskId $r")
             write(taskId, r.asInstanceOf[AnyRef])

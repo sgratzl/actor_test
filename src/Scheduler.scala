@@ -98,10 +98,10 @@ class Scheduler(val port: Int = 9000, val paralleTasksPerSlave: Int = 5) {
     }
   })
 
-  def apply[P<:AnyRef, T](args: P): Future[T] = {
+  def apply[T](task: TaskCode[T]): Future[T] = {
     val p = Promise[T]()
 
-    val t = Task(counter.incrementAndGet(), args, p.asInstanceOf[Promise[AnyRef]])
+    val t = Task(counter.incrementAndGet(), task, p.asInstanceOf[Promise[AnyRef]])
 
     println(s"schedule ${Thread.currentThread()} $t")
     tasks.add(t)
@@ -109,10 +109,10 @@ class Scheduler(val port: Int = 9000, val paralleTasksPerSlave: Int = 5) {
     p.future
   }
 
-  def delay[P<:AnyRef, T](args: P): Future[T] = {
+  def delay[P<:TaskCode[T], T](task: P): Future[T] = {
     val p = Promise[T]()
 
-    val t = Task(counter.incrementAndGet(), args, p.asInstanceOf[Promise[AnyRef]])
+    val t = Task(counter.incrementAndGet(), task, p.asInstanceOf[Promise[AnyRef]])
 
     delayed.synchronized({
       if (noMoreDelayed) {
