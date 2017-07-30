@@ -63,7 +63,7 @@ object Slave extends App {
       try {
         val taskId = in.readInt()
         val args = in.readObject()
-        println(s"${client.getLocalAddress}s ${Thread.currentThread()} got task: $taskId $args")
+        //println(s"${client.getLocalAddress}s ${Thread.currentThread()} got task: $taskId $args")
 
         compute(db, args.asInstanceOf[MultiplyTask]) onComplete {
           case Success(r) =>

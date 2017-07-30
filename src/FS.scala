@@ -93,6 +93,14 @@ class FS(val baseDir: String = "./data") {
     }
   }
 
+  def compare(path: String, m: Matrix): Boolean = {
+    val f = new File(base, path)
+    assume(f.exists() && f.isFile)
+    use(new DataInputStream(new FileInputStream(f))) { in =>
+      m.flatten.forall(_ == in.readInt())
+    }
+  }
+
   private def collectFile(f: File, size: (Int, Int)): Matrix = {
     assume(f.exists() && f.isDirectory)
     val r = Matrix.empty(size._1, size._2)

@@ -26,7 +26,7 @@ class Scheduler(val port: Int = 9000, val paralleTasksPerSlave: Int = 5) {
             active.acquire()
             val t = tasks.take()
             running.put(t.uid, t)
-            println(s"${channel.getRemoteAddress}m: ${Thread.currentThread()} send task ${running.size()}: $t")
+            //println(s"${channel.getRemoteAddress}m: ${Thread.currentThread()} send task ${running.size()}: $t")
             out.writeInt(t.uid)
             out.writeObject(t.args)
             out.flush()
@@ -53,7 +53,7 @@ class Scheduler(val port: Int = 9000, val paralleTasksPerSlave: Int = 5) {
                 task.promise failure null
               } else {
                 val result = in.readObject()
-                println(s"${channel.getRemoteAddress}m: ${Thread.currentThread()} got task result: $task $result")
+                //println(s"${channel.getRemoteAddress}m: ${Thread.currentThread()} got task result: $task $result")
                 task.promise success result.asInstanceOf[AnyRef]
               }
             } catch {

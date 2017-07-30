@@ -19,6 +19,8 @@ object Master extends App {
   println(s"prepare data...")
   val a = db.toBinaryFile(s"${size}a.csv")
   val b = db.toBinaryFile(s"${size}b.csv")
+  val c = db.toBinaryFile(s"${size}c.csv")
+
   val ab = db.emptyBinary(s"${size}ab.csv")
 
   println(s"$size: a * b = ")
@@ -26,8 +28,5 @@ object Master extends App {
   val f = remote(db, schedule, a, b, ab, size)
 
   val r = Await.result(f, Duration("200s"))
-  println(r)
-  val c = Matrix(s"./data/${size}c.csv")
-  println(c)
-  println(r == c)
+  println(db.compare(c, r))
 }
