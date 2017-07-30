@@ -2,10 +2,6 @@ version: '2.0'
 services:
   slave:
     image: openjdk:jre-alpine
-    depends_on:
-      - db
-    links:
-      - db
     volumes:
       - '.:/ws'
     working_dir: /ws
@@ -14,11 +10,9 @@ services:
     image: openjdk:jre-alpine
     depends_on:
       - slave
-      - db
     links:
       - slave
-      - db
     volumes:
       - '.:/ws'
     working_dir: /ws
-    command: 'java -cp ".:lib/*:out/production/distributed_matrix" Master ./data 1024'
+    command: 'java -cp ".:lib/*:out/production/distributed_matrix" Master ./data 2048'

@@ -17,7 +17,7 @@ object Slave extends App {
 
   private def connect(): AsynchronousSocketChannel = {
     var tries = 0
-    for(i <- 0 until 10) {
+    for(i <- 0 until 50) {
       try {
         val client = AsynchronousSocketChannel.open
         client.connect(new InetSocketAddress(hostname, 9000)).get()
