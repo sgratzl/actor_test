@@ -17,30 +17,10 @@ class DB(val host: String = "db") {
       //c.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE)
       c
     }
-
   })
-  private val cellQuery = () => {
-    val s = conn.get().prepareStatement("SELECT value from CELL WHERE uid = ? AND i = ? AND j = ?")
-    s.closeOnCompletion()
-    s
-  }
-  private val rowQuery = () => {
-    val s = conn.get().prepareStatement("SELECT value from CELL WHERE uid = ? AND i = ? ORDER BY j")
-    s.closeOnCompletion()
-    s
-  }
-  private val colQuery = () => {
-    val s = conn.get().prepareStatement("SELECT value from CELL WHERE uid = ? AND j = ? ORDER BY i")
-    s.closeOnCompletion()
-    s
-  }
-  private val matrixQuery = () => {
+
+  private val getQuery = () => {
     val s = conn.get().prepareStatement("SELECT value from CELL WHERE uid = ? AND i >= ? AND i < ? AND j >= ? AND j < ? ORDER BY i, j")
-    s.closeOnCompletion()
-    s
-  }
-  private val matrixFullQuery = () => {
-    val s = conn.get().prepareStatement("SELECT value from CELL WHERE uid = ? ORDER BY i, j")
     s.closeOnCompletion()
     s
   }
@@ -50,17 +30,25 @@ class DB(val host: String = "db") {
     s.closeOnCompletion()
     s
   }
-  private val addQuery = () => {
-    val s = conn.get().prepareStatement("UPDATE CELL SET value = value + ? WHERE uid = ? AND i = ? AND j = ?")
+
+  private val appendQuery = () => {
+    val s = conn.get().prepareStatement("INSERT INTO CELL_APPENDONLY VALUES(?, ?, ?, ?)")
+    s.closeOnCompletion()
+    s
+  }
+
+  private val aggregateQuery = () => {
+    val s = conn.get().prepareStatement("SELECT SUM(value) FROM CELL_APPENDONLY WHERE uid = ? GROUP BY i, j ORDER BY i, j")
     s.closeOnCompletion()
     s
   }
 
   use(conn.get.createStatement()) { stmt =>
     try {
+      stmt.execute("CREATE TABLE CELL_APPENDONLY (uid INT NOT NULL, i INT NOT NULL, j INT NOT NULL, value INT NOT NULL)")
       stmt.execute("CREATE TABLE CELL (uid INT NOT NULL, i INT NOT NULL, j INT NOT NULL, value INT NOT NULL, CONSTRAINT PK_CELL PRIMARY KEY (uid, i, j))")
     } catch {
-      case e: SQLTransactionRollbackException if e.getMessage.startsWith("Table/View 'CELL' already exists in Schema 'APP'") => println("table already exists", e)
+      case e: SQLTransactionRollbackException if e.getMessage.startsWith("Table/View 'CELL") => println("table already exists", e)
       case e: Exception =>
         println("unknown error ", e)
         e.printStackTrace()
@@ -80,41 +68,9 @@ class DB(val host: String = "db") {
     def next() = rs
   }.toStream
 
-  def getCell(uid: Int, i: Int, j: Int): Int = {
-    val p = cellQuery()
-    p.setInt(1, uid)
-    p.setInt(2, i)
-    p.setInt(3, j)
-    val r = p.executeQuery()
-    r.next()
-    r.getInt(1)
-  }
-
-  def addCell(uid: Int, i: Int, j: Int, v: Int): Int = {
-    val p = addQuery()
-    p.setInt(2, uid)
-    p.setInt(3, i)
-    p.setInt(4, j)
-    p.setInt(1, v)
-
-    p.executeUpdate()
-  }
-
-  def getMatrix(uid: Int, size: Int): Matrix = {
-    val p = matrixFullQuery()
-    p.setInt(1, uid)
-
-    val v = iterate(p.executeQuery())
-      .map(_.getInt(1))
-      .grouped(size)
-      .map(_.toIndexedSeq)
-      .toIndexedSeq
-    Matrix(v)
-  }
-
   def getMatrix(uid: Int, iFrom: Int, iTo: Int, jFrom: Int, jTo: Int): Matrix = {
     //println("full",Thread.currentThread(), uid, getMatrix(uid, 8))
-    val p = matrixQuery()
+    val p = getQuery()
     p.setInt(1, uid)
     p.setInt(2, iFrom)
     p.setInt(3, iTo)
@@ -131,46 +87,25 @@ class DB(val host: String = "db") {
     r
   }
 
-  def setMatrix(uid: Int, iFrom: Int, iTo: Int, jFrom: Int, jTo: Int, m: Matrix): Int = {
-    val p = insertQuery()
+  def getAggreatedMatrix(uid: Int, nRow: Int): Matrix = {
+    //println("full",Thread.currentThread(), uid, getMatrix(uid, 8))
+    val p = aggregateQuery()
     p.setInt(1, uid)
-    m.zipWithIndex.foreach({ case (r, i) =>
-      p.setInt(2, i + iFrom)
-      r.zipWithIndex.foreach({ case (v, j) =>
-          p.setInt(3, j + jFrom)
-          p.setInt(4, v)
-          p.addBatch()
-      })
-    })
-    val r = p.executeBatch().sum
-    println("Done")
+
+    val v = iterate(p.executeQuery())
+      .map(_.getInt(1))
+      .grouped(nRow)
+      .map(_.toIndexedSeq)
+      .toIndexedSeq
+    val r = Matrix(v)
+    //println("get ",Thread.currentThread(),uid, full(iFrom, iTo, jFrom, jTo, r, 8))
     r
-  }
-
-  def init(uid: Int, is: Int, js: Int): Int = {
-    val p = insertQuery()
-    p.setInt(1, uid)
-    p.setInt(4, 0)
-    for(i <- 0 until is; j <- 0 until js) {
-      p.setInt(2, i)
-      p.setInt(3, j)
-      p.addBatch()
-    }
-    p.executeBatch().sum
-  }
-
-  def full(iFrom: Int, iTo: Int, jFrom: Int, jTo: Int, m: Matrix, s: Int): Matrix = {
-    val r = Matrix.empty(s, s)
-    for(i <- iFrom until iTo; j <- jFrom until jTo) {
-      r(i)(j) = m(i - iFrom)(j - jFrom)
-    }
-    Matrix(r)
   }
 
   def addMatrix(uid: Int, iFrom: Int, iTo: Int, jFrom: Int, jTo: Int, m: Matrix): Int = {
     //println("before",Thread.currentThread(), uid, getMatrix(uid, 0, 4, 0, 4))
     //println("add   ",Thread.currentThread(),uid, full(iFrom, iTo, jFrom, jTo, m, 8))
-    val p = addQuery()
+    val p = appendQuery()
     p.setInt(2, uid)
     m.zipWithIndex.foreach({ case (r, i) =>
       p.setInt(3, i + iFrom)
@@ -183,15 +118,6 @@ class DB(val host: String = "db") {
     val r = p.executeBatch().sum
     //println("after",Thread.currentThread(),uid, getMatrix(uid, 0, 4, 0, 4))
     r
-  }
-
-  def setCell(uid: Int, i: Int, j: Int, v: Int): Boolean = {
-    val p = insertQuery()
-    p.setInt(1, uid)
-    p.setInt(2, i)
-    p.setInt(3, j)
-    p.setInt(4, v)
-    p.executeUpdate() != 0
   }
 
   def save(uid: Int): Matrix = {
@@ -229,10 +155,18 @@ class DB(val host: String = "db") {
     println("loaded", uid) //, matrix)
   }
 
-  def delete(uid: Int): Boolean = {
+  def delete(uid: Int): Unit = {
     use(conn.get.createStatement()) { stmt =>
       println("delete", uid)
-      return stmt.execute(s"DELETE FROM CELL WHERE uid = $uid")
+      stmt.execute(s"DELETE FROM CELL WHERE uid = $uid")
+      stmt.execute(s"DELETE FROM CELL_APPENDONLY WHERE uid = $uid")
+    }
+  }
+
+  def clear(): Unit = {
+    use(conn.get.createStatement()) { stmt =>
+      stmt.execute(s"DELETE FROM CELL")
+      stmt.execute(s"DELETE FROM CELL_APPENDONLY")
     }
   }
 }

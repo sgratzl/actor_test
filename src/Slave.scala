@@ -12,7 +12,7 @@ import scala.util.control.Breaks.{break, breakable}
 
 object Slave extends App {
   val hostname = if (args.length > 0) args(0) else "master"
-  val db = new DB(if (args.length > 1) args(1) else "db")
+  val db = new FS(if (args.length > 1) args(1) else "./data")
   println("start")
 
   private def connect(): AsynchronousSocketChannel = {

@@ -12,25 +12,11 @@ package object multiply {
     }
   }
 
-  def remote(db: DB, scheduler: Scheduler, a: Matrix, b: Matrix): Future[Matrix] = {
-    val A = 1
-    val B = 2
-    val C = 3
-    val N = a.nrow
-    db.delete(A)
-    db.delete(B)
-    db.delete(C)
-
-    val load = Future.reduce(Array(Future(db.load(A, a)), Future(db.load(B, b), Future(db.init(C, N, N)))))((_,_)=>Unit)
-
+  def remote(db: FS, scheduler: Scheduler, A: String, B: String, C: String, N: Int): Future[Matrix] = {
     for {
-      loaded <- load
-      task <- MultiplyTask(A, 0, 0, B, 0, 0, C, 0, 0, N)(db, scheduler)
+      task <- MultiplyTask(A, 0, 0, B, 0, 0, C, 0, 0, N, N)(db, scheduler)
     } yield {
-      val r = db.getMatrix(C, 0, N, 0, N)
-      db.delete(A)
-      db.delete(B)
-      db.delete(C)
+      val r = db.getMatrix(C, (N,N))
       r
     }
   }
@@ -38,8 +24,8 @@ package object multiply {
 
   //https://stackoverflow.com/questions/5472744/fork-join-matrix-multiplication-in-java
 
-  val THRESHOLD = 64
-  case class MultiplyTask(A: Int, aRow: Int, aCol: Int, B: Int, bRow: Int, bCol: Int, C: Int, cRow: Int, cCol: Int, size: Int) {
+  val THRESHOLD = 2
+  case class MultiplyTask(A: String, aRow: Int, aCol: Int, B: String, bRow: Int, bCol: Int, C: String, cRow: Int, cCol: Int, size: Int, N: Int) {
     /**
       * Multiply matrices AxB by dividing into quadrants, using algorithm:
       * <pre>
@@ -50,54 +36,54 @@ package object multiply {
       *  A21 | A22     B21 | B22     A21*B11 | A21*B12     A22*B21 | A22*B22
       * </pre>
       */
-    def apply(db: DB, schedule: Scheduler): Future[Any] = {
+    def apply(db: FS, schedule: Scheduler): Future[Any] = {
       //if (size == 1) {
       //  Future(db.addCell(C, cRow, cCol, db.getCell(A, aRow, aCol) * db.getCell(B, bRow, bCol)))
       //} else
       if (size <= THRESHOLD) {
-        schedule(this)
+        compute(db, this)
       } else {
         val h = size / 2
         val c11_1 = MultiplyTask(
           A, aRow, aCol, // A11
           B, bRow, bCol, // B11
           C, cRow, cCol, // C11
-          h)
+          h, N)
         val c11_2 = MultiplyTask(
           A, aRow, aCol + h, // A12
           B, bRow + h, bCol, // B21
           C, cRow, cCol,     // C11
-          h)
+          h, N)
         val c12_1 = MultiplyTask(
           A, aRow, aCol, // A11
           B, bRow, bCol + h, // B12
           C, cRow, cCol + h, // C12
-          h)
+          h, N)
         val c12_2 = MultiplyTask(
           A, aRow, aCol + h,     // A12
           B, bRow + h, bCol + h, // B22
           C, cRow, cCol + h,     // C12
-          h)
+          h, N)
         val c21_1 = MultiplyTask(
           A, aRow + h, aCol, // A21
           B, bRow, bCol,     // B11
           C, cRow + h, cCol, // C21
-          h)
+          h, N)
         val c21_2 = MultiplyTask(
           A, aRow + h, aCol + h,  // A22
           B, bRow + h, bCol,     // B21
           C, cRow + h, cCol,     // C21
-          h)
+          h, N)
         val c22_1 = MultiplyTask(
           A, aRow + h, aCol,     // A21
           B, bRow, bCol + h,     // B12
           C, cRow + h, cCol + h, // C22
-          h)
+          h, N)
         val c22_2 = MultiplyTask(
           A, aRow + h, aCol + h, // A22
           B, bRow + h, bCol + h, // B22
           C, cRow + h, cCol + h, // C22
-          h)
+          h, N)
 
         val forks = Array(c11_1, c11_2, c12_1, c12_2, c21_1, c21_2, c22_1, c22_2).map(_(db, schedule))
         Future.reduce(forks)((_,_)=>Unit)
@@ -105,11 +91,11 @@ package object multiply {
     }
   }
 
-  def compute(db: DB, task: MultiplyTask): Future[Int] = {
+  def compute(db: FS, task: MultiplyTask): Future[Int] = {
     import task._
     Future {
-      val A = db.getMatrix(task.A, aRow, aRow + size, aCol, aCol + size)
-      val B = db.getMatrix(task.B, bRow, bRow + size, bCol, bCol + size)
+      val A = db.getMatrix(task.A, (N,N), aRow, aRow + size, aCol, aCol + size)
+      val B = db.getMatrix(task.B, (N,N), bRow, bRow + size, bCol, bCol + size)
       val C = Matrix.empty(size, size)
 
       for (j <- 0 until size by 2; i <- 0 until size by 2) {
@@ -137,6 +123,7 @@ package object multiply {
         C(i + 1)(j + 1) += s11
       }
       db.addMatrix(task.C, cRow, cRow + size, cCol, cCol + size, Matrix(C))
+      size * size
     }
   }
 }
