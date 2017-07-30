@@ -1,11 +1,5 @@
 version: '2.0'
 services:
-  db:
-    image: openjdk:jre-alpine
-    volumes:
-      - '.:/ws'
-    working_dir: /ws
-    command: 'java -cp ".:lib/*" -jar lib/derbyrun.jar server start'
   slave:
     image: openjdk:jre-alpine
     depends_on:
@@ -15,7 +9,7 @@ services:
     volumes:
       - '.:/ws'
     working_dir: /ws
-    command: 'java -cp ".:lib/*:out/production/distributed_matrix" Slave master'
+    command: 'java -cp ".:lib/*:out/production/distributed_matrix" Slave ./data master'
   master:
     image: openjdk:jre-alpine
     depends_on:
@@ -27,4 +21,4 @@ services:
     volumes:
       - '.:/ws'
     working_dir: /ws
-    command: 'java -cp ".:lib/*:out/production/distributed_matrix" Master 1000'
+    command: 'java -cp ".:lib/*:out/production/distributed_matrix" Master ./data 1024'

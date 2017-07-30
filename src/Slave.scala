@@ -11,8 +11,8 @@ import scala.concurrent.ExecutionException
 import scala.util.control.Breaks.{break, breakable}
 
 object Slave extends App {
-  val hostname = if (args.length > 0) args(0) else "master"
-  val db = new FS(if (args.length > 1) args(1) else "./data")
+  val db = new FS(if (args.length > 0) args(0) else "./data")
+  val hostname = if (args.length > 1) args(1) else "master"
   println("start")
 
   private def connect(): AsynchronousSocketChannel = {

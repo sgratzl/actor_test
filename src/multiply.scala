@@ -41,7 +41,7 @@ package object multiply {
       //  Future(db.addCell(C, cRow, cCol, db.getCell(A, aRow, aCol) * db.getCell(B, bRow, bCol)))
       //} else
       if (size <= THRESHOLD) {
-        schedule(this)
+        compute(db, this)
       } else {
         val h = size / 2
         val c11_1 = MultiplyTask(

@@ -9,6 +9,9 @@ import scala.concurrent.duration.Duration
 object Master extends App {
   val db = new FS(if (args.length > 0) args(0) else "./data")
 
+  //for simpler profiling
+  //Thread.sleep(10000)
+
   //db.delete(10)
   //db.load(10, Matrix("./data/10a.csv"))
 
@@ -28,5 +31,6 @@ object Master extends App {
   val f = remote(db, schedule, a, b, ab, size)
 
   val r = Await.result(f, Duration("200s"))
+  print("done comparing result: ok? ")
   println(db.compare(c, r))
 }
