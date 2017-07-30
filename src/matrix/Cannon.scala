@@ -3,7 +3,7 @@ package matrix
 import scala.collection.mutable
 
 object Cannon {
-  type Ints = IndexedSeq[Int]
+  type Ints = IndexedSeq[Double]
   type IntsInts = IndexedSeq[Ints]
 
   def apply(a: Matrix, b: Matrix): Matrix = {
@@ -24,7 +24,7 @@ object Cannon {
     var aShifted = circularShift(a.values)
     var bShiftedTransposed = circularShift(transpose(b.values))
 
-    val c = (0 until b.nrow).map((_) => mutable.IndexedSeq.fill(a.ncol)(0)).toIndexedSeq
+    val c = Matrix.empty(b.nrow, a.ncol)
 
     for (k <- 1 to n) {
       for (i <- 0 until n; j <- 0 until n) {

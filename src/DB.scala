@@ -13,7 +13,7 @@ class DB(val host: String = "db") {
 
   private val conn = ThreadLocal.withInitial(new Supplier[Connection]() {
     override def get(): Connection = {
-      val c = DriverManager.getConnection(s"jdbc:derby://$host:1527/matrixStore;create=true", null)
+      val c = DriverManager.getConnection(s"jdbc:derby://$host:1527/matrixDoubleStore;create=true", null)
       //c.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE)
       c
     }
@@ -45,8 +45,8 @@ class DB(val host: String = "db") {
 
   use(conn.get.createStatement()) { stmt =>
     try {
-      stmt.execute("CREATE TABLE CELL_APPENDONLY (uid INT NOT NULL, i INT NOT NULL, j INT NOT NULL, value INT NOT NULL)")
-      stmt.execute("CREATE TABLE CELL (uid INT NOT NULL, i INT NOT NULL, j INT NOT NULL, value INT NOT NULL, CONSTRAINT PK_CELL PRIMARY KEY (uid, i, j))")
+      stmt.execute("CREATE TABLE CELL_APPENDONLY (uid INT NOT NULL, i INT NOT NULL, j INT NOT NULL, value DOUBLE NOT NULL)")
+      stmt.execute("CREATE TABLE CELL (uid INT NOT NULL, i INT NOT NULL, j INT NOT NULL, value DOUBLE NOT NULL, CONSTRAINT PK_CELL PRIMARY KEY (uid, i, j))")
     } catch {
       case e: SQLTransactionRollbackException if e.getMessage.startsWith("Table/View 'CELL") => println("table already exists", e)
       case e: Exception =>
@@ -78,7 +78,7 @@ class DB(val host: String = "db") {
     p.setInt(5, jTo)
 
     val v = iterate(p.executeQuery())
-      .map(_.getInt(1))
+      .map(_.getDouble(1))
       .grouped(iTo - iFrom)
       .map(_.toIndexedSeq)
       .toIndexedSeq
@@ -93,7 +93,7 @@ class DB(val host: String = "db") {
     p.setInt(1, uid)
 
     val v = iterate(p.executeQuery())
-      .map(_.getInt(1))
+      .map(_.getDouble(1))
       .grouped(nRow)
       .map(_.toIndexedSeq)
       .toIndexedSeq
@@ -111,7 +111,7 @@ class DB(val host: String = "db") {
       p.setInt(3, i + iFrom)
       r.zipWithIndex.foreach({ case (v, j) =>
         p.setInt(4, j + jFrom)
-        p.setInt(1, v)
+        p.setDouble(1, v)
         p.addBatch()
       })
     })
@@ -127,9 +127,9 @@ class DB(val host: String = "db") {
       val cols = rs.getInt(2)
       rs.close()
 
-      val r = (0 until rows).map((_) => mutable.IndexedSeq.fill(cols)(0)).toIndexedSeq
+      val r = (0 until rows).map((_) => mutable.IndexedSeq.fill(cols)(Matrix.zero)).toIndexedSeq
       val data = stmt.executeQuery(s"SELECT i, j, value FROM CELL WHERE uid = $uid")
-      iterate(data).foreach((rs) => r(rs.getInt(1))(rs.getInt(2)) = rs.getInt(3))
+      iterate(data).foreach((rs) => r(rs.getInt(1))(rs.getInt(2)) = rs.getDouble(3))
       data.close()
 
       Matrix(r.map(_.toIndexedSeq))
@@ -143,7 +143,7 @@ class DB(val host: String = "db") {
     for ((row, i) <- matrix.values.zipWithIndex; (cell, j) <- row.zipWithIndex) {
       p.setInt(2, i)
       p.setInt(3, j)
-      p.setInt(4, cell)
+      p.setDouble(4, cell)
       p.addBatch()
       b += 1
       if (b > 60000) {

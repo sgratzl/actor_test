@@ -7,6 +7,8 @@ import matrix.Matrix
 class FS(val baseDir: String = "./data") {
   val base = new File(baseDir)
 
+  val byteSize = 8
+
   private def use[R <: AutoCloseable, T](resource: R)(code: R => T): T =
     try
       code(resource)
@@ -35,7 +37,7 @@ class FS(val baseDir: String = "./data") {
       Source.fromFile(f, "utf-8")
         .getLines()
         .foreach(_.split("\t")
-          .map(_.toInt).foreach(out.writeInt))
+          .map(_.toDouble).foreach(out.writeDouble))
     })
     relativeBinaryName
   }
@@ -70,10 +72,10 @@ class FS(val baseDir: String = "./data") {
     assume(f.exists() && f.isFile)
     use(new RandomAccessFile(f, "r").getChannel) { channel =>
       val rows = for (row <- rowStart until rowEnd) yield {
-        val buffer = ByteBuffer.allocate(colSize * 4)
-        channel.read(buffer, (row * size._2 + colStart) * 4 )
+        val buffer = ByteBuffer.allocate(colSize * byteSize)
+        channel.read(buffer, (row * size._2 + colStart) * byteSize )
         buffer.rewind()
-        val ints = buffer.asIntBuffer()
+        val ints = buffer.asDoubleBuffer()
         (0 until colSize).map(ints.get)
       }
       val r = new Matrix(rows)
@@ -87,7 +89,7 @@ class FS(val baseDir: String = "./data") {
     use(new DataInputStream(new FileInputStream(f))) { in =>
 
       val rows = for(i <- 0 until size._1) yield {
-        (0 until size._2).map(_ => in.readInt())
+        (0 until size._2).map(_ => in.readDouble())
       }
       new Matrix(rows)
     }
@@ -97,7 +99,7 @@ class FS(val baseDir: String = "./data") {
     val f = new File(base, path)
     assume(f.exists() && f.isFile)
     use(new DataInputStream(new FileInputStream(f))) { in =>
-      m.flatten.forall(_ == in.readInt())
+      m.flatten.forall(_ == in.readDouble())
     }
   }
 
@@ -138,14 +140,14 @@ class FS(val baseDir: String = "./data") {
           if (channel.size() == 0) {
             //first time
             m.foreach(_.foreach( v => {
-              out.writeInt(v)
+              out.writeDouble(v)
             }))
           } else {
             val in = new DataInputStream(Channels.newInputStream(channel))
             m.foreach(_.foreach( v => {
-              val old = in.readInt()
-              channel.position(channel.position() - 4) //revert read
-              out.writeInt(old + v)
+              val old = in.readDouble()
+              channel.position(channel.position() - byteSize) //revert read
+              out.writeDouble(old + v)
             }))
           }
           channel.position(0) //reset

@@ -24,7 +24,7 @@ package object multiply {
 
   //https://stackoverflow.com/questions/5472744/fork-join-matrix-multiplication-in-java
 
-  val THRESHOLD = 128
+  val THRESHOLD = 256
   case class MultiplyTask(A: String, aRow: Int, aCol: Int, B: String, bRow: Int, bCol: Int, C: String, cRow: Int, cCol: Int, size: Int, N: Int) {
     /**
       * Multiply matrices AxB by dividing into quadrants, using algorithm:
@@ -101,10 +101,10 @@ package object multiply {
       for (j <- 0 until size by 2; i <- 0 until size by 2) {
         val a0 = A(i)
         val a1 = A(i + 1)
-        var s00 = 0
-        var s01 = 0
-        var s10 = 0
-        var s11 = 0
+        var s00 = Matrix.zero
+        var s01 = Matrix.zero
+        var s10 = Matrix.zero
+        var s11 = Matrix.zero
         for (k <- 0 until size by 2) {
           val b0 = B(k)
           s00 += a0(k) * b0(j)
