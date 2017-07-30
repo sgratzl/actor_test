@@ -3,15 +3,20 @@ import java.net.InetSocketAddress
 import java.nio.channels.AsynchronousServerSocketChannel.open
 import java.nio.channels.{AsynchronousSocketChannel, Channels, CompletionHandler}
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.concurrent.{ConcurrentHashMap, Semaphore}
+import java.util.concurrent.{ConcurrentHashMap, ConcurrentLinkedQueue, Semaphore}
+import java.util.function.Consumer
 
 import scala.concurrent.{ExecutionException, Future, Promise}
 import tasks._
+
+import scala.util.Random
 
 class Scheduler(val port: Int = 9000, val paralleTasksPerSlave: Int = 5) {
   private val listener = open().bind(new InetSocketAddress(port))
 
   private val tasks = new TaskQueue()
+  private val delayed = new ConcurrentLinkedQueue[Task]()
+  private var noMoreDelayed = false
 
   case class Slave(channel: AsynchronousSocketChannel) {
     val active = new Semaphore(paralleTasksPerSlave)
@@ -102,5 +107,32 @@ class Scheduler(val port: Int = 9000, val paralleTasksPerSlave: Int = 5) {
     tasks.add(t)
 
     p.future
+  }
+
+  def delay[P<:AnyRef, T](args: P): Future[T] = {
+    val p = Promise[T]()
+
+    val t = Task(counter.incrementAndGet(), args, p.asInstanceOf[Promise[AnyRef]])
+
+    delayed.synchronized({
+      if (noMoreDelayed) {
+        println(s"schedule ${Thread.currentThread()} $t")
+        tasks.add(t)
+      } else {
+        println(s"schedule delayed ${Thread.currentThread()} $t")
+        delayed.add(t)
+      }
+    })
+
+    p.future
+  }
+
+  def shuffleAndInsertDelayed(): Unit = {
+    delayed.synchronized({
+      noMoreDelayed = true
+      val shuffled = Random.shuffle((0 until delayed.size()).map(_ => delayed.poll()))
+      delayed.clear()
+      shuffled.foreach(tasks.add)
+    })
   }
 }

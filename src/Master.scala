@@ -29,6 +29,7 @@ object Master extends App {
   println(s"$size: a * b = ")
   println("wait for it...")
   val f = remote(db, schedule, a, b, ab, size)
+  schedule.shuffleAndInsertDelayed()
 
   val r = Await.result(f, Duration("200s"))
   print("done comparing result: ok? ")
