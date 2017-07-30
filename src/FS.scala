@@ -32,7 +32,7 @@ class FS(val baseDir: String = "./data") {
       return relativeBinaryName
     }
 
-    use(new DataOutputStream(new FileOutputStream(binary)))( out => {
+    use(new DataOutputStream(new FileOutputStream(binary)))(out => {
       import scala.io.Source
       Source.fromFile(f, "utf-8")
         .getLines()
@@ -73,10 +73,10 @@ class FS(val baseDir: String = "./data") {
     use(new RandomAccessFile(f, "r").getChannel) { channel =>
       val buffer = ByteBuffer.allocate(colSize * byteSize)
       val rows = for (row <- rowStart until rowEnd) yield {
-        channel.read(buffer, (row * size._2 + colStart) * byteSize )
+        channel.read(buffer, (row * size._2 + colStart) * byteSize)
         buffer.rewind()
         val ints = buffer.asDoubleBuffer()
-        (0 until colSize).map(ints.get)
+        (0 until colSize).map(_ => ints.get())
       }
       val r = new Matrix(rows)
       //println(path, rowStart, rowSize, colStart, colEnd, r)
@@ -88,7 +88,7 @@ class FS(val baseDir: String = "./data") {
     assume(f.exists() && f.isFile)
     use(new DataInputStream(new FileInputStream(f))) { in =>
 
-      val rows = for(i <- 0 until size._1) yield {
+      val rows = for (i <- 0 until size._1) yield {
         (0 until size._2).map(_ => in.readDouble())
       }
       new Matrix(rows)
@@ -122,7 +122,7 @@ class FS(val baseDir: String = "./data") {
     Matrix(r)
   }
 
-  def addMatrix(path: String, rowStart: Int, rowEnd: Int, colStart: Int, colEnd: Int, m: Matrix) {
+  def addMatrix(path: String, rowStart: Int, rowEnd: Int, colStart: Int, colEnd: Int, m: Array[Array[Double]]) {
     val rowSize = rowEnd - rowStart
     val colSize = colEnd - colStart
     val name = Symbol(s"$path/%05d-%05d;%05d;%05d".format(rowStart, colStart, rowSize, colSize))
@@ -139,13 +139,32 @@ class FS(val baseDir: String = "./data") {
           val out = new DataOutputStream(Channels.newOutputStream(channel))
           if (channel.size() == 0) {
             //first time
-            m.flatten.foreach(out.writeDouble)
+            var i = 0
+            while (i < rowSize) {
+              val r = m(i)
+              var j = 0
+              while (j < colSize) {
+                out.writeDouble(r(j))
+                j += 1
+              }
+              i += 1
+            }
           } else {
             val buffer = ByteBuffer.allocate(rowSize * colSize * byteSize)
             channel.read(buffer, 0)
             buffer.rewind()
             val ints = buffer.asDoubleBuffer()
-            m.flatten.zipWithIndex.foreach((r) => out.writeDouble(r._1 + ints.get(r._2)))
+
+            var i = 0
+            while (i < rowSize) {
+              val r = m(i)
+              var j = 0
+              while (j < colSize) {
+                out.writeDouble(r(j) + ints.get())
+                j += 1
+              }
+              i += 1
+            }
           }
           channel.position(0) //reset
         }

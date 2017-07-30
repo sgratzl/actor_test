@@ -41,7 +41,7 @@ package object multiply {
       //  Future(db.addCell(C, cRow, cCol, db.getCell(A, aRow, aCol) * db.getCell(B, bRow, bCol)))
       //} else
       if (size <= THRESHOLD) {
-        schedule(this)
+        compute(db, this)
       } else {
         val h = size / 2
         val c11_1 = MultiplyTask(
@@ -94,35 +94,43 @@ package object multiply {
   def compute(db: FS, task: MultiplyTask): Future[Int] = {
     import task._
     Future {
-      val A = db.getMatrix(task.A, (N,N), aRow, aRow + size, aCol, aCol + size)
-      val B = db.getMatrix(task.B, (N,N), bRow, bRow + size, bCol, bCol + size)
-      val C = Matrix.empty(size, size)
+      val A = db.getMatrix(task.A, (N,N), aRow, aRow + size, aCol, aCol + size).map(_.toArray).toArray
+      val B = db.getMatrix(task.B, (N,N), bRow, bRow + size, bCol, bCol + size).map(_.toArray).toArray
+      val C = Matrix.emptyArray(size, size)
 
-      for (j <- 0 until size by 2; i <- 0 until size by 2) {
-        val a0 = A(i)
-        val a1 = A(i + 1)
-        var s00 = Matrix.zero
-        var s01 = Matrix.zero
-        var s10 = Matrix.zero
-        var s11 = Matrix.zero
-        for (k <- 0 until size by 2) {
-          val b0 = B(k)
-          s00 += a0(k) * b0(j)
-          s10 += a1(k) * b0(j)
-          s01 += a0(k) * b0(j + 1)
-          s11 += a1(k) * b0(j + 1)
-          val b1 = B(k + 1)
-          s00 += a0(k + 1) * b1(j)
-          s10 += a1(k + 1) * b1(j)
-          s01 += a0(k + 1) * b1(j + 1)
-          s11 += a1(k + 1) * b1(j + 1)
+      var j = 0
+      while (j < size) {
+        var i = 0
+        while (i < size) {
+          val a0 = A(i)
+          val a1 = A(i + 1)
+          var s00 = Matrix.zero
+          var s01 = Matrix.zero
+          var s10 = Matrix.zero
+          var s11 = Matrix.zero
+          var k = 0
+          while (k < size) {
+            val b0 = B(k)
+            s00 += a0(k) * b0(j)
+            s10 += a1(k) * b0(j)
+            s01 += a0(k) * b0(j + 1)
+            s11 += a1(k) * b0(j + 1)
+            val b1 = B(k + 1)
+            s00 += a0(k + 1) * b1(j)
+            s10 += a1(k + 1) * b1(j)
+            s01 += a0(k + 1) * b1(j + 1)
+            s11 += a1(k + 1) * b1(j + 1)
+            k += 2
+          }
+          C(i)(j) += s00
+          C(i)(j + 1) += s01
+          C(i + 1)(j) += s10
+          C(i + 1)(j + 1) += s11
+          i += 2
         }
-        C(i)(j) += s00
-        C(i)(j + 1) += s01
-        C(i + 1)(j) += s10
-        C(i + 1)(j + 1) += s11
+        j += 2
       }
-      db.addMatrix(task.C, cRow, cRow + size, cCol, cCol + size, Matrix(C))
+      db.addMatrix(task.C, cRow, cRow + size, cCol, cCol + size, C)
       size * size
     }
   }

@@ -40,4 +40,8 @@ object Matrix {
   def empty(rows: Int, cols: Int): IndexedSeq[mutable.IndexedSeq[Double]] = {
     (0 until rows).map((_) => mutable.IndexedSeq.fill(cols)(zero))
   }
+
+  def emptyArray(rows: Int, cols: Int): Array[Array[Double]] = {
+    (0 until rows).map((_) => new Array[Double](cols)).toArray
+  }
 }
