@@ -71,8 +71,8 @@ class FS(val baseDir: String = "./data") {
     val f = new File(base, path)
     assume(f.exists() && f.isFile)
     use(new RandomAccessFile(f, "r").getChannel) { channel =>
+      val buffer = ByteBuffer.allocate(colSize * byteSize)
       val rows = for (row <- rowStart until rowEnd) yield {
-        val buffer = ByteBuffer.allocate(colSize * byteSize)
         channel.read(buffer, (row * size._2 + colStart) * byteSize )
         buffer.rewind()
         val ints = buffer.asDoubleBuffer()
@@ -139,16 +139,13 @@ class FS(val baseDir: String = "./data") {
           val out = new DataOutputStream(Channels.newOutputStream(channel))
           if (channel.size() == 0) {
             //first time
-            m.foreach(_.foreach( v => {
-              out.writeDouble(v)
-            }))
+            m.flatten.foreach(out.writeDouble)
           } else {
-            val in = new DataInputStream(Channels.newInputStream(channel))
-            m.foreach(_.foreach( v => {
-              val old = in.readDouble()
-              channel.position(channel.position() - byteSize) //revert read
-              out.writeDouble(old + v)
-            }))
+            val buffer = ByteBuffer.allocate(rowSize * colSize * byteSize)
+            channel.read(buffer, 0)
+            buffer.rewind()
+            val ints = buffer.asDoubleBuffer()
+            m.flatten.zipWithIndex.foreach((r) => out.writeDouble(r._1 + ints.get(r._2)))
           }
           channel.position(0) //reset
         }
