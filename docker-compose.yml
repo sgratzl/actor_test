@@ -5,7 +5,7 @@ services:
     volumes:
       - '.:/ws'
     working_dir: /ws
-    command: 'java -cp ".:lib/*:out/production/distributed_matrix" Main --mode slave'
+    command: 'java -cp ".:lib/*:out/production/distributed_matrix" Slave ./data master'
   master:
     image: openjdk:jre-alpine
     depends_on:
@@ -15,4 +15,4 @@ services:
     volumes:
       - '.:/ws'
     working_dir: /ws
-    command: 'java -cp ".:lib/*:out/production/distributed_matrix" Main --mode master --slaves 3 --file 10'
+    command: 'java -cp ".:lib/*:out/production/distributed_matrix" Master ./data 2048'

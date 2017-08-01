@@ -1,2 +1,6 @@
 /out
 /.idea
+/matrixStore
+derby.log
+*.bin
+*.bin/
